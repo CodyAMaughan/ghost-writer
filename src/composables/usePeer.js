@@ -95,6 +95,7 @@ export function usePeer() {
     // --- DATA HANDLERS ---
 
     const handleHostData = (msg, senderId) => {
+        console.log(`[HOST] Received ${msg.type} from ${senderId}`, msg.payload);
         switch (msg.type) {
             case 'JOIN':
                 addPlayer(senderId, msg.payload.name, false);
@@ -129,6 +130,7 @@ export function usePeer() {
                 broadcastState();
                 break;
             case 'SUBMIT_VOTE':
+                console.log(`[HOST] Vote received from ${senderId} for ${msg.payload.targetAuthorId}: ${msg.payload.guess}`);
                 const submission = gameState.submissions.find(s => s.authorId === msg.payload.targetAuthorId);
                 if (submission) {
                     submission.votes[senderId] = msg.payload.guess;
@@ -137,9 +139,19 @@ export function usePeer() {
                 break;
             case 'REQUEST_GHOST':
                 // Host acts as proxy
-                const agentDef = AGENTS.find(a => a.id === msg.payload.agentId);
-                if (agentDef) {
-                    fetchAI(gameState.settings.provider, gameState.settings.apiKey, msg.payload.prompt, agentDef.systemPrompt)
+                let systemPrompt = "";
+
+                if (msg.payload.agentId === 'custom') {
+                    systemPrompt = msg.payload.systemPrompt || "You are a generic helper.";
+                } else {
+                    const agentDef = AGENTS.find(a => a.id === msg.payload.agentId);
+                    if (agentDef) systemPrompt = agentDef.systemPrompt;
+                }
+
+                if (systemPrompt) {
+                    // Add constraint here for safety if not trusted source? 
+                    // Service layer puts instruction at end anyway.
+                    fetchAI(gameState.settings.provider, gameState.settings.apiKey, msg.payload.prompt, systemPrompt)
                         .then(options => {
                             const conn = connMap.get(senderId);
                             if (conn) conn.send({ type: 'GHOST_OPTIONS', payload: { options } });
@@ -150,6 +162,7 @@ export function usePeer() {
     };
 
     const handleClientData = (msg) => {
+        console.log(`[CLIENT] Received ${msg.type}`, msg.payload);
         if (msg.type === 'SYNC') {
             Object.assign(gameState, msg.payload);
         } else if (msg.type === 'GHOST_OPTIONS') {
@@ -163,6 +176,7 @@ export function usePeer() {
     // --- ACTIONS (Host) ---
     const broadcastState = () => {
         if (!isHost.value) return;
+        console.log("[HOST] Broadcasting State", gameState.phase);
 
         // Masking for fairness
         const stateToSend = JSON.parse(JSON.stringify(gameState));
@@ -223,10 +237,17 @@ export function usePeer() {
         startRound();
     };
 
+    const nextRound = () => {
+        gameState.round++;
+        startRound();
+    };
+
     const startRound = () => {
+        console.log("[HOST] Starting Round", gameState.round);
         gameState.phase = 'PROMPT';
         gameState.submissions = [];
         gameState.votes = {};
+        gameState.finishedVotingIDs = [];
         gameState.revealedIndex = -1;
         generateNewPrompt();
         broadcastState();
@@ -352,16 +373,22 @@ export function usePeer() {
         });
     };
 
-    const getGhostOptions = (agentId) => {
+    const getGhostOptions = (agentId, customSystemPrompt = null) => {
         if (isHost.value) {
             // Call directly
-            const agentDef = AGENTS.find(a => a.id === agentId);
-            return fetchAI(gameState.settings.provider, gameState.settings.apiKey, gameState.prompt, agentDef.systemPrompt);
+            let sys = "";
+            if (agentId === 'custom') {
+                sys = customSystemPrompt;
+            } else {
+                const agentDef = AGENTS.find(a => a.id === agentId);
+                sys = agentDef ? agentDef.systemPrompt : "";
+            }
+            return fetchAI(gameState.settings.provider, gameState.settings.apiKey, gameState.prompt, sys);
         } else {
             // Ask Host
             return new Promise((resolve) => {
                 pendingGhostResolve = resolve;
-                hostConn.send({ type: 'REQUEST_GHOST', payload: { agentId, prompt: gameState.prompt } });
+                hostConn.send({ type: 'REQUEST_GHOST', payload: { agentId, prompt: gameState.prompt, systemPrompt: customSystemPrompt } });
             });
         }
     };
@@ -414,6 +441,7 @@ export function usePeer() {
         joinGame,
         startGame,
         startRound,
+        nextRound, // Exposed
         nextReveal,
         leaveGame, // Exposed
 
