@@ -21,9 +21,12 @@ const showCustom = ref(false);
     
     <div class="relative z-10 container mx-auto px-4 py-8 h-screen flex flex-col">
       <header class="flex flex-col md:flex-row justify-between items-center mb-6 border-b border-gray-700 pb-4 gap-4">
-        <h1 class="text-3xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 animate-pulse">
-          GHOST_WRITER_v1.0
-        </h1>
+        <div class="flex items-center gap-4">
+            <img src="/ghost_writer_logo.png" alt="Ghost Writer Logo" class="w-12 h-12 object-contain hover:rotate-12 transition-transform" />
+            <h1 class="text-3xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 animate-pulse">
+            GHOST_WRITER_v1.0
+            </h1>
+        </div>
         
         <div class="flex items-center gap-6">
             <div v-if="gameState.roomCode" class="text-xs uppercase tracking-widest text-slate-500">
