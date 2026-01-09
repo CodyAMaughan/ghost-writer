@@ -84,17 +84,17 @@ const submitGhost = (text) => {
                 <Brain class="w-6 h-6" />
                 <h3 class="font-bold tracking-widest">MANUAL_OVERRIDE</h3>
              </div>
-             <textarea v-model="manualText" maxlength="100" 
+             <textarea v-model="manualText" maxlength="100" data-testid="manual-input"
                        class="w-full h-32 bg-slate-900 border border-slate-600 rounded p-4 text-white focus:outline-none focus:border-blue-500 resize-none font-mono"
                        placeholder="Type your answer here..."></textarea>
              <div class="flex justify-between mt-4">
                 <span class="text-xs text-slate-500">{{ manualText.length }}/100</span>
-                <button @click="submitManual" :disabled="!manualText" class="bg-blue-600 px-6 py-2 rounded text-white font-bold disabled:opacity-50 hover:bg-blue-500">SUBMIT</button>
+                <button @click="submitManual" :disabled="!manualText" data-testid="submit-manual-btn" class="bg-blue-600 px-6 py-2 rounded text-white font-bold disabled:opacity-50 hover:bg-blue-500">SUBMIT</button>
              </div>
           </div>
 
           <!-- GHOST -->
-          <div @click="openGhostModal" class="cursor-pointer bg-slate-800/50 border border-slate-700 hover:border-purple-500 p-6 rounded-xl transition-all flex flex-col items-center justify-center group relative overflow-hidden">
+          <div @click="openGhostModal" data-testid="open-ghost-modal-btn" class="cursor-pointer bg-slate-800/50 border border-slate-700 hover:border-purple-500 p-6 rounded-xl transition-all flex flex-col items-center justify-center group relative overflow-hidden">
              <div class="absolute inset-0 bg-purple-900/10 group-hover:bg-purple-900/20 transition-all"></div>
              <Ghost class="w-16 h-16 text-slate-600 group-hover:text-purple-400 mb-4 transition-colors" />
              <h3 class="font-bold tracking-widest text-purple-400 text-xl">ENGAGE GHOST_WRITER</h3>
@@ -102,7 +102,7 @@ const submitGhost = (text) => {
           </div>
        </div>
 
-       <div v-else class="flex-grow flex flex-col items-center justify-center">
+       <div v-else class="flex-grow flex flex-col items-center justify-center" data-testid="data-uploaded-msg">
           <CheckCircle class="w-20 h-20 text-green-500 mb-4 animate-bounce" />
           <h2 class="text-2xl text-white font-bold">DATA UPLOADED</h2>
           <p class="text-slate-400 mt-2">Waiting for other players...</p>
@@ -118,12 +118,14 @@ const submitGhost = (text) => {
              <div v-if="!activeAgent" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div v-for="agent in AGENTS" :key="agent.id" 
                      @click="selectAgent(agent)"
+                     :data-testid="'agent-select-btn-' + agent.id"
                      class="p-4 border border-slate-700 rounded hover:bg-purple-900/20 hover:border-purple-400 cursor-pointer transition-all">
                    <div class="font-bold text-white mb-1">{{ agent.name }}</div>
                    <div class="text-xs text-slate-400">{{ agent.description }}</div>
                 </div>
                 <!-- Custom Button -->
                 <div @click="selectAgent({id:'custom'})"
+                     data-testid="agent-custom-btn"
                      class="p-4 border border-dashed border-purple-600/50 rounded hover:bg-purple-900/20 hover:border-purple-400 cursor-pointer transition-all flex flex-col items-center justify-center gap-2">
                    <UserCog class="w-6 h-6 text-purple-400" />
                    <div class="font-bold text-purple-400 uppercase tracking-wider text-xs">Custom Protocol</div>
@@ -144,6 +146,7 @@ const submitGhost = (text) => {
                    <p class="text-xs text-slate-500 mb-2">SELECT ONE OUTPUT:</p>
                    <button v-for="(opt, idx) in ghostOptions" :key="idx" 
                            @click="submitGhost(opt)"
+                           :data-testid="'ghost-option-btn-' + idx"
                            class="text-left p-4 bg-slate-800 border border-slate-600 rounded hover:bg-purple-600 hover:text-white hover:border-purple-400 transition-all text-sm md:text-base">
                       "{{ opt }}"
                    </button>

@@ -73,7 +73,7 @@ const handleSave = () => {
                   <!-- Name Input -->
                   <div>
                       <label class="block text-xs uppercase text-slate-400 mb-1">Agent Name</label>
-                      <input v-model="customAgent.name" maxlength="15" 
+                      <input v-model="customAgent.name" maxlength="15" data-testid="custom-agent-name" 
                              class="w-full bg-slate-800 border border-slate-700 rounded p-3 text-white focus:border-purple-500 focus:outline-none placeholder-slate-600"
                              placeholder="e.g. Sarcasto-Bot" />
                   </div>
@@ -81,7 +81,7 @@ const handleSave = () => {
                   <!-- Prompt Input -->
                   <div>
                       <label class="block text-xs uppercase text-slate-400 mb-1">Personality System Prompt</label>
-                      <textarea v-model="customAgent.prompt" :maxlength="MAX_PROMPT_LEN" rows="4"
+                      <textarea v-model="customAgent.prompt" :maxlength="MAX_PROMPT_LEN" rows="4" data-testid="custom-agent-prompt"
                                 class="w-full bg-slate-800 border border-slate-700 rounded p-3 text-white focus:border-purple-500 focus:outline-none placeholder-slate-600 resize-none"
                                 placeholder="e.g. Answer like a pirate. Be rude but funny."></textarea>
                       <div class="flex justify-between mt-1 text-[10px] text-slate-500">
@@ -93,11 +93,11 @@ const handleSave = () => {
 
               <!-- Actions -->
               <div class="mt-8 flex gap-3">
-                  <button v-if="mode === 'GENERATE'" @click="handleGenerate" :disabled="!customAgent.name"
+                  <button v-if="mode === 'GENERATE'" @click="handleGenerate" :disabled="!customAgent.name" data-testid="custom-agent-generate-btn"
                           class="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded shadow-lg shadow-purple-900/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                       <Sparkles class="w-4 h-4" /> GENERATE RESPONSE
                   </button>
-                  <button @click="handleSave" 
+                  <button @click="handleSave" data-testid="custom-agent-save-btn" 
                           class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded border border-slate-600 flex items-center justify-center gap-2">
                       <Save class="w-4 h-4" /> SAVE PROFILE
                   </button>

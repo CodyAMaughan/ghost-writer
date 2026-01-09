@@ -48,7 +48,7 @@ const copyCode = () => {
         <div class="text-center space-y-4">
           <Server class="w-16 h-16 mx-auto text-green-400" />
           <p class="text-sm text-slate-400 uppercase tracking-widest">Construct New Reality</p>
-          <button @click="mode = 'HOSTING'" 
+          <button @click="mode = 'HOSTING'" data-testid="landing-host-btn" 
                   class="w-full bg-green-500 hover:bg-green-400 text-slate-900 font-bold py-4 rounded shadow-lg shadow-green-900/20 transition-all transform hover:scale-105">
             HOST GAME
           </button>
@@ -59,7 +59,7 @@ const copyCode = () => {
         <div class="text-center space-y-4">
           <LogIn class="w-16 h-16 mx-auto text-purple-400" />
           <p class="text-sm text-slate-400 uppercase tracking-widest">Infiltrate Server</p>
-          <button @click="mode = 'JOINING'" 
+          <button @click="mode = 'JOINING'" data-testid="landing-join-btn" 
                   class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold py-4 rounded shadow-lg transition-all transform hover:scale-105">
             JOIN GAME
           </button>
@@ -75,7 +75,7 @@ const copyCode = () => {
       <div class="space-y-4">
         <div>
           <label class="block text-xs uppercase text-slate-500 mb-1">Codename</label>
-          <input v-model="form.name" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-green-500 text-white placeholder-slate-600" placeholder="ENTER_NAME" />
+          <input v-model="form.name" data-testid="host-name-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-green-500 text-white placeholder-slate-600" placeholder="ENTER_NAME" />
         </div>
         <div>
           <label class="block text-xs uppercase text-slate-500 mb-1">AI Provider</label>
@@ -87,14 +87,14 @@ const copyCode = () => {
         <div>
           <label class="block text-xs uppercase text-slate-500 mb-1">API Access Key</label>
           <div class="relative">
-            <input v-model="form.apiKey" type="password" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-green-500 text-white placeholder-slate-600" placeholder="sk-..." />
+            <input v-model="form.apiKey" type="password" data-testid="host-api-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-green-500 text-white placeholder-slate-600" placeholder="sk-..." />
             <Key class="absolute right-3 top-3.5 w-4 h-4 text-slate-500" />
           </div>
           <p class="text-[10px] text-slate-500 mt-1">Key is stored locally. Never sent to our servers.</p>
         </div>
         <div class="flex gap-2 pt-4">
           <button @click="mode = 'LANDING'" class="flex-1 py-3 text-slate-400 hover:text-white">BACK</button>
-          <button @click="handleHost" class="flex-[2] bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded">INITIALIZE</button>
+          <button @click="handleHost" data-testid="host-init-btn" class="flex-[2] bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded">INITIALIZE</button>
         </div>
       </div>
     </div>
@@ -107,15 +107,15 @@ const copyCode = () => {
       <div class="space-y-4">
         <div>
           <label class="block text-xs uppercase text-slate-500 mb-1">Codename</label>
-          <input v-model="form.name" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-purple-500 text-white placeholder-slate-600" placeholder="ENTER_NAME" />
+          <input v-model="form.name" data-testid="join-name-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-purple-500 text-white placeholder-slate-600" placeholder="ENTER_NAME" />
         </div>
         <div>
           <label class="block text-xs uppercase text-slate-500 mb-1">Target Room Code</label>
-          <input v-model="form.code" maxlength="6" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-purple-500 text-white placeholder-slate-600 uppercase tracking-widest text-xl font-bold text-center" placeholder="XXXXXX" />
+          <input v-model="form.code" maxlength="6" data-testid="join-code-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-purple-500 text-white placeholder-slate-600 uppercase tracking-widest text-xl font-bold text-center" placeholder="XXXXXX" />
         </div>
         <div class="flex gap-2 pt-4">
           <button @click="mode = 'LANDING'" class="flex-1 py-3 text-slate-400 hover:text-white">BACK</button>
-          <button @click="handleJoin" class="flex-[2] bg-purple-500 hover:bg-purple-400 text-white font-bold py-3 rounded">CONNECT</button>
+          <button @click="handleJoin" data-testid="join-connect-btn" class="flex-[2] bg-purple-500 hover:bg-purple-400 text-white font-bold py-3 rounded">CONNECT</button>
         </div>
       </div>
     </div>
@@ -164,6 +164,7 @@ const copyCode = () => {
           </div>
 
           <button @click="startGame" 
+                  data-testid="start-game-btn"
                   :disabled="gameState.players.length < 2"
                   :class="gameState.players.length < 2 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'"
                   class="bg-green-500 text-black font-bold text-xl py-4 w-full rounded-full shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all flex items-center justify-center gap-3">

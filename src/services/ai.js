@@ -4,7 +4,7 @@ export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
 
     try {
         if (provider === 'gemini') {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -33,7 +33,7 @@ export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: "gpt-4o-mini", // Using a likely available model
+                    model: "gpt-5-mini", // Using a likely available model
                     messages: [
                         { role: "system", content: "You are a creative writing assistant." },
                         { role: "user", content: fullPrompt }

@@ -54,11 +54,13 @@ const lockVotes = () => {
              <div v-if="sub.authorId !== myId">
                  <div v-if="!votesLocked" class="flex items-center gap-2 bg-slate-900 p-1 rounded-full border border-slate-700">
                     <button @click="toggleVote(sub.authorId, 'HUMAN')" 
+                            :data-testid="'vote-human-btn-' + sub.authorId"
                             :class="votes[sub.authorId] === 'HUMAN' ? 'bg-blue-500 text-white' : 'text-slate-500 hover:text-slate-300'"
                             class="px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1">
                     <User class="w-3 h-3" /> HUMAN
                     </button>
                     <button @click="toggleVote(sub.authorId, 'BOT')"
+                            :data-testid="'vote-bot-btn-' + sub.authorId"
                             :class="votes[sub.authorId] === 'BOT' ? 'bg-purple-500 text-white' : 'text-slate-500 hover:text-slate-300'"
                             class="px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1">
                     <Zap class="w-3 h-3" /> BOT
@@ -80,7 +82,7 @@ const lockVotes = () => {
        </div>
 
        <div v-if="!votesLocked" class="fixed bottom-8 left-0 right-0 flex justify-center pointer-events-none">
-          <button @click="lockVotes" 
+          <button @click="lockVotes" data-testid="submit-votes-btn"
                   class="pointer-events-auto bg-green-500 text-black font-bold py-3 px-12 rounded-full shadow-xl hover:scale-105 transition-transform flex items-center gap-2">
              SUBMIT_DEDUCTIONS
           </button>

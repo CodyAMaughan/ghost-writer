@@ -113,7 +113,7 @@ const { gameState, isHost, myId, nextReveal } = usePeer();
 
            <!-- Host Control -->
            <div v-if="isHost" class="mt-8">
-               <button @click="nextReveal" class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-8 rounded shadow-lg">
+               <button @click="nextReveal" data-testid="next-reveal-btn" class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-8 rounded shadow-lg">
                    NEXT >
                </button>
            </div>

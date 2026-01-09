@@ -41,10 +41,10 @@ const { gameState, isHost, myId, nextRound, startGame } = usePeer();
          </div>
  
          <div v-if="isHost" class="flex gap-4">
-            <button v-if="gameState.round < gameState.maxRounds" @click="nextRound" class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-3 px-8 rounded">
+            <button v-if="gameState.round < gameState.maxRounds" @click="nextRound" data-testid="next-round-btn" class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-3 px-8 rounded">
                START ROUND {{ gameState.round + 1 }}
             </button>
-            <button @click="startGame" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded border border-slate-500">
+            <button @click="startGame" data-testid="restart-game-btn" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded border border-slate-500">
                RESTART GAME
             </button>
          </div>
