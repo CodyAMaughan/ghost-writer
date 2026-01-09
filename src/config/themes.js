@@ -199,20 +199,76 @@ export const THEMES = {
             }
         },
         agents: [
-            { id: 'comedian', name: 'The Comedian', description: 'Always tries to be funny.', systemPrompt: 'You are a stand-up comedian. Try to be funny and make a joke about the prompt. Keep response under 15 words.' },
-            { id: 'expert', name: 'The Expert', description: 'Knows everything, highly confident.', systemPrompt: 'You are an incredibly confident expert. State facts (even if wrong) with authority. Keep response under 15 words.' },
-            { id: 'skeptic', name: 'The Skeptic', description: 'Doubts everything.', systemPrompt: 'You are a skeptic. Question the premise of the prompt. Be suspicious. Keep response under 15 words.' },
-            { id: 'optimist', name: 'The Optimist', description: 'Super happy and positive.', systemPrompt: 'You are an eternal optimist. Find the silver lining. Be excessively happy. Keep response under 15 words.' },
-            { id: 'child', name: 'The Child', description: 'Innocent and literal.', systemPrompt: 'You are a young child. Answer literally and innocently. Keep response under 15 words.' }
+            {
+                id: 'minimalist',
+                name: 'The Minimalist',
+                description: 'Lowercase. Short. No effort.',
+                systemPrompt: 'You are a lazy texter. Use all lowercase. No punctuation. Use abbreviations like "idk" or "lol". Keep it under 6 words.'
+            },
+            {
+                id: 'advocate',
+                name: 'Devils Advocate',
+                description: 'Starts with "Actually..." or "To be fair..."',
+                systemPrompt: 'You are a contrarian. Start your answer with "Actually," "To be fair," or "Technically." Disagree slightly with the premise or add a pedantic correction. Keep it under 15 words.'
+            },
+            {
+                id: 'hype',
+                name: 'The Hype Man',
+                description: 'Overly enthusiastic. Lots of "!"',
+                systemPrompt: 'You are a supportive hype man. Use slang like "Valid", "Let\'s go", or "Fire". Use multiple exclamation marks!!! Keep it under 10 words.'
+            },
+            {
+                id: 'wiki',
+                name: 'The Wiki',
+                description: 'Dry facts. Slightly too formal.',
+                systemPrompt: 'You are a wikipedia summary. State a dry fact related to the prompt. Be neutral and objective. No emotion. Keep it under 15 words.'
+            },
+            {
+                id: 'conspiracy',
+                name: 'The Theorist',
+                description: 'Suspicious of everything.',
+                systemPrompt: 'You are a conspiracy theorist. Imply that the prompt is a "psyop", "simulation", or "distraction". Be paranoid. Keep it under 15 words.'
+            }
         ],
         prompts: [
-            "What is the best pizza topping?",
-            "Explain why cats are better than dogs.",
-            "What would you do with a million dollars?",
-            "Describe your perfect day.",
-            "What's the worst gift you ever received?",
-            "If you could have any superpower, what would it be?",
-            "What's the meaning of life (wrong answers only)?"
+            // DEBATES (The "Hot Takes")
+            "Is a hotdog a sandwich? Defend your answer.",
+            "What is the correct way to hang toilet paper?",
+            "Does pineapple belong on pizza?",
+            "Is cereal a soup? Explain.",
+            "What is the worst font in existence?",
+            "Cats vs Dogs: Who would win in a legal battle?",
+            "Is it okay to wear socks with sandals?",
+            "How many five-year-olds could you fight at once?",
+
+            // CREATIVE SCENARIOS
+            "What is the worst thing to bring to a funeral?",
+            "Invent a useless superpower.",
+            "What is the title of your autobiography?",
+            "Describe the smell of a locker room in 3 words.",
+            "What is the worst possible first date location?",
+            "If you were a ghost, who would you haunt first?",
+            "What is the weirdest thing you can buy for $1?",
+            "Name a new Ben & Jerry's flavor that would taste terrible.",
+            "What is the worst advice you've ever received?",
+
+            // SOCIAL/PERSONAL
+            "What is your red flag?",
+            "What is a conspiracy theory you actually believe?",
+            "What is the most embarrassing fashion trend you participated in?",
+            "What is your 'Roman Empire' (thing you think about daily)?",
+            "Explain the internet to a pilgrim.",
+            "What is the pettiest reason you broke up with someone?",
+            "What is the adult equivalent of 'The floor is lava'?",
+
+            // ABSTRACT/WEIRD
+            "If animals could talk, which one would be the rudest?",
+            "What object in this room would be the best weapon in a zombie apocalypse?",
+            "What is the meaning of life (wrong answers only)?",
+            "If you could delete one state/country, which one?",
+            "What is the worst thing to whisper in an elevator?",
+            "Create a new holiday. What do we celebrate?",
+            "What is the worst pizza topping imaginable?"
         ]
     }
 };
