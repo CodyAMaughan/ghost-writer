@@ -1,10 +1,44 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { usePeer } from '../../composables/usePeer';
+import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
+import confetti from 'canvas-confetti';
 
 const { gameState, isHost, myId, nextRound, startGame, leaveGame } = usePeer();
+const { playSfx, playMusic } = useAudio();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+
+const leaderboard = computed(() => {
+    const sorted = [...gameState.players].sort((a,b) => b.score - a.score);
+    let currentRank = 1;
+    return sorted.map((p, i) => {
+        if (i > 0 && p.score < sorted[i-1].score) {
+            currentRank = i + 1;
+        }
+        return { ...p, rank: currentRank };
+    });
+});
+
+onMounted(() => {
+    playMusic('BGM_LOBBY'); 
+    playSfx('WINNER');
+
+    // Confetti Burst
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    (function frame() {
+        confetti({
+            particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 100
+        });
+        confetti({
+            particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 100
+        });
+
+        if (Date.now() < end) requestAnimationFrame(frame);
+    }());
+});
 </script>
 
 <template>
@@ -21,22 +55,22 @@ const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
                   </tr>
                </thead>
                <tbody>
-                  <tr v-for="(p, i) in gameState.players.sort((a,b) => b.score - a.score)" :key="p.id" 
+                  <tr v-for="p in leaderboard" :key="p.id" 
                       class="border-b border-slate-700 last:border-0 hover:bg-slate-700/50 transition-colors"
-                      :class="{'bg-gradient-to-r from-yellow-500/10 to-transparent': i===0, 'bg-gradient-to-r from-slate-400/10 to-transparent': i===1, 'bg-gradient-to-r from-amber-700/10 to-transparent': i===2}">
+                      :class="{'bg-gradient-to-r from-yellow-500/10 to-transparent': p.rank===1, 'bg-gradient-to-r from-slate-400/10 to-transparent': p.rank===2, 'bg-gradient-to-r from-amber-700/10 to-transparent': p.rank===3}">
                      <td class="p-4 font-bold text-white w-16 text-center">
-                         <span v-if="i===0" class="text-2xl">🥇</span>
-                         <span v-else-if="i===1" class="text-2xl">🥈</span>
-                         <span v-else-if="i===2" class="text-2xl">🥉</span>
-                         <span v-else class="text-slate-500">#{{ i + 1 }}</span>
+                         <span v-if="p.rank===1" class="text-2xl">🥇</span>
+                         <span v-else-if="p.rank===2" class="text-2xl">🥈</span>
+                         <span v-else-if="p.rank===3" class="text-2xl">🥉</span>
+                         <span v-else class="text-slate-500">#{{ p.rank }}</span>
                      </td>
                      <td class="p-4">
-                        <div class="font-bold text-lg" :class="{'text-yellow-400': i===0, 'text-slate-300': i===1, 'text-amber-600': i===2, 'text-slate-200': i>2}">
+                        <div class="font-bold text-lg" :class="{'text-yellow-400': p.rank===1, 'text-slate-300': p.rank===2, 'text-amber-600': p.rank===3, 'text-slate-200': p.rank>3}">
                             {{ p.name }}
                         </div>
                         <div v-if="p.id === myId" class="text-[10px] text-slate-500 uppercase tracking-widest">YOU</div>
                      </td>
-                     <td class="p-4 font-bold text-right text-xl font-mono" :class="{'text-yellow-400': i===0, [theme.colors.accent]: i>0}">
+                     <td class="p-4 font-bold text-right text-xl font-mono" :class="{'text-yellow-400': p.rank===1, [theme.colors.accent]: p.rank>1}">
                          {{ p.score }} <span class="text-sm font-sans text-slate-500">pts</span>
                      </td>
                   </tr>

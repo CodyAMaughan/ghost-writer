@@ -19,19 +19,6 @@ Howler.mute(isMuted.value);
 
 export function useAudio() {
 
-    // Watchers are set up once if we considered this a singleton initialization,
-    // but since useAudio is called in setup, we need to be careful not to duplicate watchers?
-    // Actually, Vue watchers inside composables are bound to the component scope generally.
-    // If we want GLOBAL watchers, they should be outside.
-    // I'll put them in a dedicated init function or just re-bind efficiently.
-    // For simplicity: I'll put them inside useAudio but ensure they are lightweight.
-
-    // Actually, efficient way: Watchers at module scope?
-    // Vue refs are reactive at module scope. Watchers need a reactive context.
-    // I'll leave them inside the composable for now, assuming only one "Settings" component controls them actively.
-    // OR I can just update Howler inside the setters/watchers in the UI component.
-    // Better: Helper function to sync.
-
     const syncVolumes = () => {
         Howler.volume(masterVolume.value);
         Howler.mute(isMuted.value);
