@@ -324,7 +324,39 @@ export const THEMES = {
             "If you could delete one state/country, which one?",
             "What is the worst thing to whisper in an elevator?",
             "Create a new holiday. What do we celebrate?",
-            "What is the worst pizza topping imaginable?"
+            "What is the worst pizza topping imaginable?",
+
+            // CORPORATE & WORK LIFE
+            "What is the professional way to say 'I don't care'?",
+            "Describe your job to a medieval peasant.",
+            "What is a meeting that definitely could have been an email?",
+            "What is the worst thing to say during a job interview?",
+            "Invent a fake startup idea that sounds real.",
+
+            // MODERN DYSTOPIA
+            "Write a clickbait YouTube title for your life story.",
+            "If your phone history was public, what would be your defense?",
+            "What is the most useless app on your phone?",
+            "Describe the internet in 3 words.",
+            "What will be the cause of the robot uprising?",
+
+            // HYPOTHETICALS & SURVIVAL
+            "Which fictional character would be the worst roommate?",
+            "Who in this lobby would die first in a horror movie?",
+            "What is the first thing you do if aliens land tomorrow?",
+            "If you could rename Earth, what would you call it?",
+            "What is a crime that should actually be legal?",
+
+            // BAD ADVICE & ROASTS
+            "What is the best excuse to leave a party early?",
+            "How would you launder a million dollars? (Hypothetically)",
+            "What is your controversial 'Boomer' opinion?",
+            "What is a scam that you actually respect?",
+            "Write a text breaking up with someone gently.",
+
+            // SENSORY & RANDOM
+            "What is the worst texture to touch?",
+            "What food smells good but tastes bad?"
         ]
     }
 };
