@@ -14,16 +14,58 @@ const mode = ref('LANDING'); // LANDING, HOSTING, JOINING, WAITING
 const form = ref({
   name: '',
   code: '',
-  provider: 'gemini',
-  apiKey: localStorage.getItem('gw_api_key') || ''
+  provider: 'gemini'
 });
 
 const showKeyHelp = ref(false);
 
+const apiKeys = ref({
+    gemini: '',
+    openai: '',
+    anthropic: ''
+});
+
+const rememberKeys = ref(false);
+
+// Load keys on mount
+const loadKeys = () => {
+    // Check local storage availability
+    const storage = localStorage.getItem('gw_remember_keys') === 'true' ? localStorage : sessionStorage;
+    
+    if (localStorage.getItem('gw_remember_keys') === 'true') {
+        rememberKeys.value = true;
+    }
+
+    apiKeys.value.gemini = storage.getItem('gw_api_key_gemini') || '';
+    apiKeys.value.openai = storage.getItem('gw_api_key_openai') || '';
+    apiKeys.value.anthropic = storage.getItem('gw_api_key_anthropic') || '';
+};
+loadKeys();
+
+const saveKeys = () => {
+    // Clear old locations first to avoid duplicates/confusion if toggling
+    localStorage.removeItem('gw_api_key_gemini');
+    localStorage.removeItem('gw_api_key_openai');
+    localStorage.removeItem('gw_api_key_anthropic');
+    sessionStorage.removeItem('gw_api_key_gemini');
+    sessionStorage.removeItem('gw_api_key_openai');
+    sessionStorage.removeItem('gw_api_key_anthropic');
+
+    const storage = rememberKeys.value ? localStorage : sessionStorage;
+    if (rememberKeys.value) localStorage.setItem('gw_remember_keys', 'true');
+    else localStorage.removeItem('gw_remember_keys');
+
+    if(apiKeys.value.gemini) storage.setItem('gw_api_key_gemini', apiKeys.value.gemini);
+    if(apiKeys.value.openai) storage.setItem('gw_api_key_openai', apiKeys.value.openai);
+    if(apiKeys.value.anthropic) storage.setItem('gw_api_key_anthropic', apiKeys.value.anthropic);
+};
+
 const handleHost = () => {
-  if(!form.value.name || !form.value.apiKey) return alert("Name & API Key required");
-  localStorage.setItem('gw_api_key', form.value.apiKey);
-  initHost(form.value.name, form.value.provider, form.value.apiKey);
+  const key = apiKeys.value[form.value.provider];
+  if(!form.value.name || !key) return alert("Name & API Key required");
+  
+  saveKeys();
+  initHost(form.value.name, form.value.provider, key);
   mode.value = 'WAITING';
 };
 
@@ -88,20 +130,39 @@ const copyCode = () => {
         </div>
         <div>
           <label class="block text-xs uppercase text-slate-500 mb-1">AI Provider</label>
-          <div class="flex gap-4">
-            <button @click="form.provider = 'gemini'" :class="[form.provider === 'gemini' ? `bg-opacity-20 border-opacity-100 ${theme.colors.accent} ${theme.colors.border}` : 'bg-slate-900 border-slate-700 text-slate-500']" class="flex-1 p-3 border rounded transition-colors text-center font-bold text-sm">Gemini (Free)</button>
-            <button @click="form.provider = 'openai'" :class="[form.provider === 'openai' ? 'bg-purple-500/20 border-purple-500 text-purple-400' : 'bg-slate-900 border-slate-700 text-slate-500']" class="flex-1 p-3 border rounded transition-colors text-center font-bold text-sm">OpenAI ($)</button>
+          <div class="grid grid-cols-3 gap-2">
+            <button @click="form.provider = 'gemini'" :class="[form.provider === 'gemini' ? `bg-blue-500/20 border-blue-500 text-blue-400` : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-16">
+                <span class="font-bold">Gemini</span>
+                <span class="text-[9px] opacity-70">Free / Cheap<br>($0.10/M)</span>
+            </button>
+            <button @click="form.provider = 'openai'" :class="[form.provider === 'openai' ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-16">
+                <span class="font-bold">OpenAI</span>
+                <span class="text-[9px] opacity-70">Credit Needed<br>($0.25/M)</span>
+            </button>
+             <button @click="form.provider = 'anthropic'" :class="[form.provider === 'anthropic' ? 'bg-amber-500/20 border-amber-500 text-amber-400' : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-16">
+                <span class="font-bold">Anthropic</span>
+                <span class="text-[9px] opacity-70">Credit Needed<br>($1.00/M)</span>
+            </button>
           </div>
         </div>
         <div>
-          <label class="block text-xs uppercase text-slate-500 mb-1">API Access Key</label>
+          <label class="block text-xs uppercase text-slate-500 mb-1">API Access Key ({{ form.provider.toUpperCase() }})</label>
           <div class="relative">
-            <input v-model="form.apiKey" type="password" data-testid="host-api-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-opacity-100 text-white placeholder-slate-600" :class="`focus:${theme.colors.border}`" placeholder="sk-..." />
+            <input v-model="apiKeys[form.provider]" type="password" data-testid="host-api-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-opacity-100 text-white placeholder-slate-600" :class="`focus:${theme.colors.border}`" placeholder="sk-..." />
             <Key class="absolute right-3 top-3.5 w-4 h-4 text-slate-500" />
           </div>
-          <div class="flex justify-between items-center mt-1">
-             <p class="text-[10px] text-slate-500">Key is stored locally. Never sent to our servers.</p>
+          <div class="flex justify-between items-center mt-2">
+             <div class="flex items-center gap-2">
+                 <input type="checkbox" v-model="rememberKeys" id="remember" class="accent-slate-500" />
+                 <label for="remember" class="text-[10px] text-slate-400 cursor-pointer select-none">Remember keys (Unsafe on public PC)</label>
+             </div>
              <button @click="showKeyHelp = true" class="text-[10px] text-blue-400 hover:text-blue-300 underline">Need a key?</button>
+          </div>
+          
+          <div class="bg-yellow-900/20 border border-yellow-700/30 p-2 rounded mt-2">
+               <p class="text-[10px] text-yellow-500/80">
+                   ⚠ Your API Key is stored locally in your browser. For maximum security, disable extensions or use Incognito mode.
+               </p>
           </div>
         </div>
         <div class="flex gap-2 pt-4">

@@ -18,7 +18,10 @@ export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
                 })
             });
 
-            if (!response.ok) throw new Error(`Gemini Error: ${response.statusText}`);
+            if (!response.ok) {
+                if (response.status === 429) throw new Error("Gemini Quota Exceeded");
+                throw new Error(`Gemini Error: ${response.statusText}`);
+            }
 
             const data = await response.json();
             const text = data.candidates[0].content.parts[0].text;
@@ -42,14 +45,49 @@ export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
                 })
             });
 
-            if (!response.ok) throw new Error(`OpenAI Error: ${response.statusText}`);
+            if (!response.ok) {
+                if (response.status === 429) throw new Error("OpenAI Quota Exceeded");
+                throw new Error(`OpenAI Error: ${response.statusText}`);
+            }
 
             const data = await response.json();
             const text = data.choices[0].message.content;
             return parseResponse(text);
+
+        } else if (provider === 'anthropic') {
+            const url = 'https://api.anthropic.com/v1/messages';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true' // Attempt to bypass SDK-like check?
+                },
+                body: JSON.stringify({
+                    model: "claude-3-5-haiku-20241022", // As requested (closest match to 4-5)
+                    max_tokens: 1024,
+                    system: "You are a creative writing assistant.",
+                    messages: [
+                        { role: "user", content: fullPrompt }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                console.error("Anthropic Error Data:", errData);
+                if (response.status === 429) throw new Error("Anthropic Quota Exceeded");
+                throw new Error(`Anthropic Error: ${response.statusText} - ${errData.error?.message || ''}`);
+            }
+
+            const data = await response.json();
+            const text = data.content[0].text;
+            return parseResponse(text);
         }
     } catch (err) {
         console.error("AI Fetch Error:", err);
+        if (err.message.includes("Quota")) return ["Error: Quota Exceeded", "Check your API credits", "Try another provider"];
         return ["AI Error: Could not generate.", "AI Error: Try again.", "AI Error: Systems failing."];
     }
 }

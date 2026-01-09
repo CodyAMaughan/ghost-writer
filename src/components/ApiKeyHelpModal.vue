@@ -68,9 +68,19 @@ const copyLink = async () => {
          </ol>
 
          <div class="border-t border-slate-700 pt-4 mt-4">
+             <h3 class="text-white font-bold mb-2 text-sm">Alternative: Anthropic</h3>
+             <p class="text-xs text-slate-400 mb-2">
+                 Get an API Key from the Anthropic Console.
+             </p>
+             <a href="https://console.anthropic.com/settings/keys" target="_blank" class="block w-full text-center p-2 bg-amber-900/30 text-amber-400 border border-amber-700/50 rounded hover:bg-amber-900/50 transition-colors text-xs font-bold">
+                 GET ANTHROPIC KEY
+             </a>
+         </div>
+
+         <div class="border-t border-slate-700 pt-4 mt-4">
              <h3 class="text-white font-bold mb-2 text-sm">Alternative: OpenAI</h3>
              <p class="text-xs text-slate-400">
-                 You can also use an OpenAI API Key (GPT-4o/mini), but it requires a paid account with credit balance.
+                 You can also use an OpenAI API Key (GPT-5-mini), but it requires a paid account with credit balance.
              </p>
          </div>
 
