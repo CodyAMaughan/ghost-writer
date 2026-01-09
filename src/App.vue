@@ -10,7 +10,7 @@ import { HelpCircle, UserCog, Share2, Settings } from 'lucide-vue-next';
 import { THEMES } from './config/themes';
 import { useAudio } from './composables/useAudio';
 
-const { gameState } = usePeer();
+const { gameState, isHost, returnToLobby } = usePeer();
 const { init: initAudio } = useAudio();
 const showRules = ref(false);
 const showCustom = ref(false);
@@ -53,6 +53,12 @@ const shareTo = (platform) => {
     
     if (shareUrl) window.open(shareUrl, '_blank');
     shareMenuOpen.value = false;
+};
+
+const confirmAbort = () => {
+    if (confirm("Are you sure you want to abort the game and return to lobby? All progress will be lost.")) {
+        returnToLobby();
+    }
 };
 
 // Wake Lock to prevent sleep
@@ -122,6 +128,13 @@ onMounted(() => {
 
                  <button @click="showCustom = true" class="text-slate-500 hover:text-purple-400 transition-colors" title="Edit Custom Personality">
                      <UserCog class="w-6 h-6" />
+                 </button>
+                 <button 
+                   v-if="isHost && gameState.phase !== 'LOBBY'" 
+                   @click="confirmAbort"
+                   class="text-slate-500 hover:text-red-400 transition-colors mr-2" 
+                   title="Abort Game and Return to Lobby">
+                   <span class="text-sm font-bold">ABORT GAME</span>
                  </button>
                  <button @click="showSettings = true" class="text-slate-500 hover:text-blue-400 transition-colors" title="Settings">
                      <Settings class="w-6 h-6" />

@@ -142,8 +142,12 @@ describe('Lobby Integration', () => {
 
         await wrapper.find('[data-testid="host-init-btn"]').trigger('click');
 
-        // Assert mock was called correctly
-        expect(mockActions.initHost).toHaveBeenCalledWith('HostUser', 'gemini', 'sk-fake-key');
+        // Assert mock was called correctly (now includes lobbySettings parameter)
+        expect(mockActions.initHost).toHaveBeenCalledWith('HostUser', 'gemini', 'sk-fake-key', {
+            requirePassword: false,
+            password: '',
+            enableWaitingRoom: false
+        });
     });
 
     it('Client can join game', async () => {
@@ -153,7 +157,8 @@ describe('Lobby Integration', () => {
         await wrapper.find('[data-testid="join-code-input"]').setValue('ABCD');
         await wrapper.find('[data-testid="join-connect-btn"]').trigger('click');
 
-        expect(mockActions.joinGame).toHaveBeenCalledWith('ABCD', 'JoinUser');
+        // Now includes password parameter (empty string by default)
+        expect(mockActions.joinGame).toHaveBeenCalledWith('ABCD', 'JoinUser', '');
     });
 
     it('Host can start game when players present', async () => {

@@ -23,17 +23,24 @@ const gameState = reactive({
     settings: {
         provider: 'gemini',
         apiKey: '',
-        roundDuration: 45
+        roundDuration: 45,
+        requirePassword: false,
+        password: '',
+        enableWaitingRoom: false
     },
-    usedPrompts: [] // Track used prompts to prevent duplicates
+    usedPrompts: [], // Track used prompts to prevent duplicates
+    pendingPlayers: [] // Players awaiting approval (if waiting room enabled)
 });
 
 const myId = ref('');
 const myName = ref('');
 const isHost = ref(false);
+const isPending = ref(false); // Track if waiting for host approval
+const connectionError = ref(''); // Error message for connection issues
 const connMap = new Map();
 let peer = null;
 let hostConn = null;
+let wasKicked = false; // Track if we were intentionally disconnected
 let pendingGhostResolve = null;
 
 export function usePeer() {
@@ -60,11 +67,16 @@ export function usePeer() {
         }
     };
 
-    const initHost = (name, provider, apiKey) => {
+    const initHost = (name, provider, apiKey, lobbySettings = {}) => {
         isHost.value = true;
         myName.value = name;
         gameState.settings.provider = provider;
         gameState.settings.apiKey = apiKey;
+
+        // Apply lobby settings
+        gameState.settings.requirePassword = lobbySettings.requirePassword || false;
+        gameState.settings.password = lobbySettings.password || '';
+        gameState.settings.enableWaitingRoom = lobbySettings.enableWaitingRoom || false;
 
         // Generate 6-char code for better security
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -84,18 +96,24 @@ export function usePeer() {
         peer.on('connection', (conn) => {
             connMap.set(conn.peer, conn);
             conn.on('data', (data) => handleHostData(data, conn.peer));
-            conn.on('close', () => removePlayer(conn.peer));
-            conn.send({ type: 'SYNC', payload: gameState });
+            conn.on('close', () => {
+                removePlayer(conn.peer);
+                // Also remove from pending if they were there
+                gameState.pendingPlayers = gameState.pendingPlayers.filter(p => p.id !== conn.peer);
+            });
+            // Don't send SYNC yet - wait for JOIN with password if needed
         });
     };
 
     const GAME_ID_PREFIX = 'ghost-writer-';
 
     // --- CLIENT LOGIC ---
-    const joinGame = (code, name) => {
+    const joinGame = (code, name, password = '') => {
         isHost.value = false;
         myName.value = name;
         gameState.roomCode = code;
+        connectionError.value = ''; // Clear any previous errors
+        isPending.value = false; // Reset pending state
 
         peer = new Peer();
 
@@ -106,14 +124,17 @@ export function usePeer() {
             hostConn = peer.connect(hostId);
 
             hostConn.on('open', () => {
-                hostConn.send({ type: 'JOIN', payload: { name } });
+                hostConn.send({ type: 'JOIN', payload: { name, password } });
             });
 
             hostConn.on('data', (data) => handleClientData(data));
 
             hostConn.on('close', () => {
-                alert("Host disconnected");
-                window.location.reload();
+                // Only show "Host disconnected" if it wasn't an intentional kick/reject
+                if (!wasKicked) {
+                    alert("Host disconnected");
+                    window.location.reload();
+                }
             });
         });
     };
@@ -124,7 +145,42 @@ export function usePeer() {
         console.log(`[HOST] Received ${msg.type} from ${senderId}`, msg.payload);
         switch (msg.type) {
             case 'JOIN':
-                addPlayer(senderId, msg.payload.name, false);
+                // Password check
+                if (gameState.settings.requirePassword) {
+                    if (msg.payload.password !== gameState.settings.password) {
+                        const conn = connMap.get(senderId);
+                        if (conn) {
+                            conn.send({ type: 'AUTH_ERROR', payload: { message: 'Incorrect password' } });
+                            conn.close();
+                        }
+                        connMap.delete(senderId);
+                        return;
+                    }
+                }
+
+                // Waiting room routing
+                if (gameState.settings.enableWaitingRoom) {
+                    // Add to pending list
+                    gameState.pendingPlayers.push({
+                        id: senderId,
+                        name: msg.payload.name,
+                        avatarId: null
+                    });
+                    // Send pending status (not full SYNC)
+                    const conn = connMap.get(senderId);
+                    if (conn) {
+                        conn.send({ type: 'PENDING', payload: { message: 'Waiting for host approval' } });
+                    }
+                } else {
+                    // Direct entry
+                    addPlayer(senderId, msg.payload.name, false);
+                    // Send welcome SYNC
+                    const conn = connMap.get(senderId);
+                    if (conn) {
+                        conn.send({ type: 'SYNC', payload: gameState });
+                    }
+                }
+                broadcastState();
                 break;
             case 'SUBMIT_ANSWER':
                 const existing = gameState.submissions.find(s => s.authorId === senderId);
@@ -196,11 +252,32 @@ export function usePeer() {
         console.log(`[CLIENT] Received ${msg.type}`, msg.payload);
         if (msg.type === 'SYNC') {
             Object.assign(gameState, msg.payload);
+            isPending.value = false; // No longer pending
         } else if (msg.type === 'GHOST_OPTIONS') {
             if (pendingGhostResolve) {
                 pendingGhostResolve(msg.payload.options);
                 pendingGhostResolve = null;
             }
+        } else if (msg.type === 'AUTH_ERROR') {
+            wasKicked = true; // Prevent "host disconnected" message
+            connectionError.value = msg.payload.message || 'Incorrect password';
+            // Close connection but don't reload - let user retry
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            hostConn = null;
+        } else if (msg.type === 'PENDING') {
+            console.log('Waiting for host approval...');
+            isPending.value = true; // Set pending state
+        } else if (msg.type === 'REJECTED') {
+            wasKicked = true; // Mark as intentional disconnect
+            alert(msg.payload.message || 'Host denied entry');
+            window.location.reload();
+        } else if (msg.type === 'KICKED') {
+            wasKicked = true; // Mark as intentional disconnect
+            alert(msg.payload.message || 'You have been removed from the game');
+            window.location.reload();
         }
     };
 
@@ -497,6 +574,8 @@ export function usePeer() {
         myId,
         myName,
         gameState,
+        isPending,
+        connectionError,
         initHost,
         joinGame,
         startGame,
@@ -540,6 +619,76 @@ export function usePeer() {
             } else {
                 hostConn.send({ type: 'LOCK_VOTES' });
             }
+        },
+        approvePendingPlayer: (playerId) => {
+            if (!isHost.value) return;
+
+            const pending = gameState.pendingPlayers.find(p => p.id === playerId);
+            if (!pending) return;
+
+            // Move to active players
+            addPlayer(playerId, pending.name, false);
+
+            // Remove from pending
+            gameState.pendingPlayers = gameState.pendingPlayers.filter(p => p.id !== playerId);
+
+            // Send welcome SYNC to the approved player
+            const conn = connMap.get(playerId);
+            if (conn) {
+                conn.send({ type: 'SYNC', payload: gameState });
+            }
+
+            broadcastState();
+        },
+        rejectPendingPlayer: (playerId) => {
+            if (!isHost.value) return;
+
+            // Remove from pending
+            gameState.pendingPlayers = gameState.pendingPlayers.filter(p => p.id !== playerId);
+
+            // Close connection
+            const conn = connMap.get(playerId);
+            if (conn) {
+                conn.send({ type: 'REJECTED', payload: { message: 'Host denied entry' } });
+                conn.close();
+            }
+            connMap.delete(playerId);
+
+            broadcastState();
+        },
+        kickPlayer: (playerId) => {
+            if (!isHost.value) return;
+
+            // Remove from active players
+            removePlayer(playerId);
+
+            // Close connection
+            const conn = connMap.get(playerId);
+            if (conn) {
+                conn.send({ type: 'KICKED', payload: { message: 'You have been removed from the game' } });
+                conn.close();
+            }
+            connMap.delete(playerId);
+
+            broadcastState();
+        },
+        returnToLobby: () => {
+            if (!isHost.value) return;
+
+            // Reset game state but keep connections and players
+            gameState.phase = 'LOBBY';
+            gameState.round = 1;
+            gameState.timer = 0;
+            gameState.submissions = [];
+            gameState.finishedVotingIDs = [];
+            gameState.revealedIndex = -1;
+            gameState.revealStep = 0;
+            gameState.usedPrompts = [];
+
+            // Reset player scores
+            gameState.players.forEach(p => p.score = 0);
+
+            broadcastState();
         },
         getGhostOptions
     };

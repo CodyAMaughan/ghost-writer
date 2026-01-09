@@ -5,7 +5,7 @@ import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
 import confetti from 'canvas-confetti';
 
-const { gameState, isHost, myId, nextRound, startGame, leaveGame } = usePeer();
+const { gameState, isHost, myId, nextRound, startGame, leaveGame, returnToLobby } = usePeer();
 const { playSfx, playMusic } = useAudio();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
@@ -84,6 +84,9 @@ onMounted(() => {
                START ROUND {{ gameState.round + 1 }}
             </button>
             <div v-else class="flex gap-4">
+                <button @click="returnToLobby" class="font-bold py-3 px-8 rounded text-white bg-blue-900 hover:bg-blue-800 border border-blue-700">
+                   RETURN TO LOBBY
+                </button>
                 <button @click="startGame" data-testid="restart-game-btn" class="font-bold py-3 px-8 rounded text-white" :class="theme.colors.button">
                    PLAY AGAIN
                 </button>

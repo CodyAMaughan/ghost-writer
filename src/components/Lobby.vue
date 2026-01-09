@@ -1,23 +1,29 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { useAudio } from '../composables/useAudio';
-import { User, Server, Key, LogIn, Users, Play, Ban } from 'lucide-vue-next';
+import { User, Server, Key, LogIn, Users, Play, Ban, Trash2, Check, X } from 'lucide-vue-next';
 import AvatarIcon from './AvatarIcon.vue';
 import { AVATARS } from '../config/avatars';
-
 import { THEMES } from '../config/themes';
-import { computed } from 'vue';
 import ApiKeyHelpModal from './ApiKeyHelpModal.vue';
 
-const { initHost, joinGame, gameState, myId, myName, startGame, isHost, leaveGame, setTheme, updateAvatar } = usePeer();
+const { initHost, joinGame, gameState, myId, myName, startGame, isHost, leaveGame, setTheme, updateAvatar, 
+        approvePendingPlayer, rejectPendingPlayer, kickPlayer, connectionError, isPending } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
 const mode = ref('LANDING'); // LANDING, HOSTING, JOINING, WAITING
 const form = ref({
   name: '',
   code: '',
-  provider: 'official-server'
+  provider: 'official-server',
+  password: '' // For joining password-protected lobbies
+});
+
+const lobbySettings = ref({
+  requirePassword: false,
+  password: '',
+  enableWaitingRoom: false
 });
 
 // AUDIO
@@ -27,6 +33,16 @@ onMounted(() => {
 });
 onUnmounted(() => {
     stopMusic();
+});
+
+// Watch for connection errors (e.g., wrong password)
+watch(connectionError, (error) => {
+    if (error) {
+        // Clear password field, reset pending state, and return to join form
+        form.value.password = '';
+        isPending.value = false;
+        mode.value = 'JOINING';
+    }
 });
 
 const aiMode = ref('server'); // 'server' or 'custom'
@@ -93,16 +109,19 @@ const handleHost = () => {
   
   if(!form.value.name) return alert("Name required");
   if(aiMode.value === 'custom' && !key) return alert("API Key required");
+  if(lobbySettings.value.requirePassword && !lobbySettings.value.password) {
+    return alert("Password required when password protection is enabled");
+  }
   
   saveKeys();
-  initHost(form.value.name, form.value.provider, key);
+  initHost(form.value.name, form.value.provider, key, lobbySettings.value);
   mode.value = 'WAITING';
 };
 
 const handleJoin = () => {
   if(!form.value.name || !form.value.code) return alert("Name & Room Code required");
-  joinGame(form.value.code.toUpperCase(), form.value.name);
-  mode.value = 'WAITING'; // Actually waits for connection
+  joinGame(form.value.code.toUpperCase(), form.value.name, form.value.password);
+  // Don't change mode yet - wait for server confirmation
 };
 
 const handleLeave = () => {
@@ -226,6 +245,39 @@ const isTaken = (id) => {
                </p>
           </div>
         </div>
+        
+        <!-- LOBBY SETTINGS -->
+        <div class="space-y-3 pt-4 border-t border-slate-600">
+          <h3 class="text-xs uppercase text-slate-500 font-bold">Lobby Settings</h3>
+          
+          <!-- Password Protection -->
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" v-model="lobbySettings.requirePassword" class="accent-blue-500" />
+              <span class="text-sm">Require Password</span>
+            </label>
+            <input 
+              v-if="lobbySettings.requirePassword"
+              v-model="lobbySettings.password" 
+              type="password"
+              autocomplete="off"
+              placeholder="Set lobby password"
+              class="mt-2 w-full bg-slate-900 border border-slate-700 p-2 rounded focus:outline-none focus:border-blue-500 text-white placeholder-slate-600"
+            />
+          </div>
+          
+          <!-- Waiting Room -->
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" v-model="lobbySettings.enableWaitingRoom" class="accent-blue-500" />
+              <span class="text-sm">Enable Waiting Room (Manual Approval)</span>
+            </label>
+            <p v-if="lobbySettings.enableWaitingRoom" class="text-xs text-slate-400 mt-1 ml-6">
+              New players will need your approval to join.
+            </p>
+          </div>
+        </div>
+        
         <div class="flex gap-2 pt-4">
           <button @click="mode = 'LANDING'" class="flex-1 py-3 text-slate-400 hover:text-white">BACK</button>
           <button @click="handleHost" data-testid="host-init-btn" class="flex-[2] text-black font-bold py-3 rounded" :class="theme.colors.button">Create Game</button>
@@ -247,6 +299,24 @@ const isTaken = (id) => {
           <label class="block text-xs uppercase text-slate-500 mb-1">Room Code</label>
           <input v-model="form.code" maxlength="6" data-testid="join-code-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-slate-500 text-white placeholder-slate-600 uppercase tracking-widest text-xl font-bold text-center" placeholder="XXXXXX" />
         </div>
+        <!-- Password (Optional) -->
+        <div>
+          <label class="block text-xs uppercase text-slate-500 mb-1">Password (if required)</label>
+          <input 
+            v-model="form.password" 
+            type="password"
+            autocomplete="off"
+            data-testid="join-password-input" 
+            class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-slate-500 text-white placeholder-slate-600" 
+            placeholder="Optional" 
+          />
+        </div>
+        
+        <!-- Error Message -->
+        <div v-if="connectionError" class="bg-red-900/20 border border-red-700 rounded p-3 text-red-300 text-sm">
+          {{ connectionError }}
+        </div>
+        
         <div class="flex gap-2 pt-4">
           <button @click="mode = 'LANDING'" class="flex-1 py-3 text-slate-400 hover:text-white">BACK</button>
           <button @click="handleJoin" data-testid="join-connect-btn" class="flex-[2] bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded">CONNECT</button>
@@ -254,8 +324,30 @@ const isTaken = (id) => {
       </div>
     </div>
 
+    <!-- PENDING APPROVAL SCREEN -->
+    <div v-else-if="isPending" class="w-full max-w-md">
+      <div class="bg-black/50 border border-amber-700 rounded-xl p-12 backdrop-blur-md flex flex-col items-center gap-6">
+        <!-- Animated Ghost Logo -->
+        <div class="relative w-48 h-48 flex items-center justify-center">
+          <img src="/ghost_writer_logo.png" alt="Ghost Writer" class="w-full h-full object-contain animate-bounce" />
+        </div>
+        
+        <!-- Message -->
+        <div class="text-center space-y-2">
+          <h2 class="text-2xl font-bold text-amber-400">Waiting for Approval</h2>
+          <p class="text-slate-300">The host is reviewing your request to join...</p>
+          <p class="text-xs text-slate-500 mt-4">Room Code: <span class="font-bold tracking-widest">{{ gameState.roomCode }}</span></p>
+        </div>
+        
+        <!-- Cancel Button -->
+        <button @click="handleLeave" class="mt-4 text-xs text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-500 px-4 py-2 rounded transition-colors">
+          Cancel
+        </button>
+      </div>
+    </div>
+
     <!-- WAITING ROOM -->
-    <div v-else-if="mode === 'WAITING' || gameState.players.length > 0" class="w-full max-w-6xl flex flex-col">
+    <div v-else-if="(mode === 'WAITING' || gameState.players.length > 0) && !isPending" class="w-full max-w-6xl flex flex-col">
       <div class="bg-black/50 border border-slate-700 rounded-xl p-8 backdrop-blur-md w-full">
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 pb-4 border-b border-white/10 gap-6">
           <div class="text-center md:text-left">
@@ -274,6 +366,15 @@ const isTaken = (id) => {
                class="bg-slate-800/80 p-4 rounded flex flex-col items-center justify-center border border-slate-700 relative overflow-hidden group">
              <div v-if="player.id === myId" class="absolute top-1 right-2 text-[10px] text-yellow-400 font-bold z-10">YOU</div>
              <div v-if="player.isHost" class="absolute top-1 left-2 text-[10px] font-bold z-10" :class="theme.colors.accent">HOST</div>
+             
+             <!-- Kick Button -->
+             <button 
+               v-if="isHost && player.id !== myId && !player.isHost" 
+               @click="kickPlayer(player.id)"
+               class="absolute top-1 right-1 p-1 bg-red-900/50 hover:bg-red-900 rounded border border-red-700 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+               title="Kick player">
+               <Trash2 class="w-3 h-3 text-red-300" />
+             </button>
              
              <!-- Avatar -->
              <div @click="player.id === myId ? showAvatarPicker = true : null" 
@@ -330,6 +431,40 @@ const isTaken = (id) => {
         </div>
 
         <p v-if="isHost && gameState.players.length < 2" class="text-center text-slate-500 mt-4 animate-pulse">{{ theme.copy.waiting }}</p>
+        
+        <!-- PENDING PLAYERS SECTION (Waiting Room) -->
+        <div v-if="isHost && gameState.settings.enableWaitingRoom && gameState.pendingPlayers.length > 0" 
+             class="mt-6 bg-amber-900/10 border-2 border-amber-700/40 rounded-lg p-4">
+          <h3 class="text-sm font-bold text-amber-400 uppercase mb-3 flex items-center gap-2">
+            <Users class="w-4 h-4" />
+            Waiting List ({{ gameState.pendingPlayers.length }})
+          </h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div v-for="pending in gameState.pendingPlayers" :key="pending.id"
+                 class="bg-slate-800/50 border-2 border-dashed border-amber-600/50 rounded p-3 flex items-center justify-between">
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <AvatarIcon :avatarId="pending.avatarId || 0" size="w-10 h-10" :showBorder="true" />
+                <span class="font-semibold text-amber-200 truncate">{{ pending.name }}</span>
+              </div>
+              
+              <div class="flex gap-2 ml-2">
+                <button 
+                  @click="approvePendingPlayer(pending.id)"
+                  class="p-1.5 bg-green-900/50 hover:bg-green-900 rounded border border-green-700 transition-colors"
+                  title="Approve">
+                  <Check class="w-4 h-4 text-green-300" />
+                </button>
+                <button 
+                  @click="rejectPendingPlayer(pending.id)"
+                  class="p-1.5 bg-red-900/50 hover:bg-red-900 rounded border border-red-700 transition-colors"
+                  title="Reject">
+                  <X class="w-4 h-4 text-red-300" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
