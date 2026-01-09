@@ -73,4 +73,24 @@ describe('AI Service', () => {
         }));
         expect(result).toEqual(["S1", "S2"]);
     });
+
+    it('should parse response with unescaped nested quotes using fallback', async () => {
+        // Malformed JSON: "This "question" is a psyop"
+        const malformedJson = `["This "question" is a psyop", "Another "quoted" part", "Normal part"]`;
+
+        const mockResponse = {
+            candidates: [{ content: { parts: [{ text: malformedJson }] } }]
+        };
+        fetch.mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve(mockResponse)
+        });
+
+        const result = await fetchAI('gemini', 'key', 'prompt', 'sys');
+        expect(result).toEqual([
+            'This "question" is a psyop',
+            'Another "quoted" part',
+            'Normal part'
+        ]);
+    });
 });

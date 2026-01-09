@@ -1,6 +1,6 @@
 
 export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
-    const fullPrompt = `${systemPrompt}\n\nTask: ${prompt}\n\nProvide 3 distinct variations of this persona answering the prompt. Return ONLY a valid JSON array of strings: ["ans1", "ans2", "ans3"]. Ensure all internal quotes are escaped. Do not use markdown code blocks.`;
+    const fullPrompt = `${systemPrompt}\n\nTask: ${prompt}\n\nProvide 3 distinct variations of this persona answering the prompt. Return ONLY a valid JSON array of strings: ["ans1", "ans2", "ans3"]. CRITICAL: You must escape all internal quotes with backslashes (e.g. "He said \\"Hello\\""). Do not use markdown code blocks.`;
 
     try {
         if (provider === 'gemini') {
@@ -128,11 +128,32 @@ function parseResponse(text) {
     try {
         const list = JSON.parse(cleanText);
         if (Array.isArray(list)) return list.slice(0, 3);
-        return [cleanText, "Error parsing AI", "Try manual entry"];
     } catch (e) {
-        console.error("JSON Parse Error", e);
-        console.error("Failed to parse:", cleanText);
-        // Attempt fallback split
-        return [cleanText, "JSON Parse Error", "Manual Only"];
+        console.warn("JSON Parse Failed, attempting fallback:", e);
     }
+
+    // Fallback: Split by delimiter for unescaped quotes case
+    try {
+        let content = cleanText.trim();
+        // Remove brackets
+        if (content.startsWith('[')) content = content.substring(1);
+        if (content.endsWith(']')) content = content.substring(0, content.length - 1);
+
+        // Split by standard JSON array separator
+        const parts = content.split(/",\s*"/);
+
+        const results = parts.map(p => {
+            let s = p.trim();
+            // Clean potentially remaining start/end quotes
+            if (s.startsWith('"')) s = s.substring(1);
+            if (s.endsWith('"')) s = s.substring(0, s.length - 1);
+            return s;
+        });
+
+        if (results.length > 0) return results.slice(0, 3);
+    } catch (e2) {
+        console.error("Fallback parsing failed", e2);
+    }
+
+    return [cleanText, "Error parsing AI", "Try manual entry"];
 }

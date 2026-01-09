@@ -2,138 +2,284 @@
 import { computed } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { THEMES } from '../../config/themes';
-import { User, Zap, UserCircle } from 'lucide-vue-next';
+import { UserCircle, CheckCircle, XCircle, MinusCircle } from 'lucide-vue-next';
 
-const { gameState, isHost, myId, nextReveal } = usePeer();
+const { gameState, isHost, myId, nextRevealStep } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+
+const currentSubmission = computed(() => gameState.submissions[gameState.revealedIndex]);
+
+// Use shared state for synchronization
+const step = computed(() => gameState.revealStep || 0);
 
 const getAgentName = (id) => {
     if (id === 'autopilot') return 'Autopilot';
     const agent = theme.value.agents.find(a => a.id === id);
     return agent ? agent.name : id;
 };
+
+// Calculate stats for display
+const stats = computed(() => {
+    if (!currentSubmission.value) return { human: 0, bot: 0, total: 1 };
+    const votes = Object.values(currentSubmission.value.votes || {});
+    const human = votes.filter(v => v === 'HUMAN').length;
+    const bot = votes.filter(v => v === 'BOT').length;
+    return {
+        human,
+        bot,
+        total: human + bot || 1
+    };
+});
+
+const myVote = computed(() => {
+    if (!currentSubmission.value || !currentSubmission.value.votes) return null;
+    return currentSubmission.value.votes[myId.value];
+});
+
+const isMySubmission = computed(() => currentSubmission.value?.authorId === myId.value);
+
+const authorName = computed(() => {
+    if (!currentSubmission.value) return 'Unknown';
+    return gameState.players.find(p => p.id === currentSubmission.value.authorId)?.name || 'Unknown';
+});
+
+const advanceStep = () => {
+    nextRevealStep();
+};
+
+const verdict = computed(() => {
+    if (!currentSubmission.value) return '';
+    return currentSubmission.value.source === 'AI' 
+        ? (theme.value.reveal?.verdictAi || 'AI')
+        : (theme.value.reveal?.verdictHuman || 'HUMAN');
+});
 </script>
 
 <template>
-    <div class="w-full flex-grow flex flex-col items-center justify-center">
-       <div v-if="gameState.submissions[gameState.revealedIndex]" class="w-full max-w-2xl text-center space-y-8 animate-fade-in-up">
+    <div class="w-full h-full overflow-y-auto flex flex-col items-center p-4 pb-32">
+       <div v-if="currentSubmission" class="w-full max-w-2xl relative my-auto h-[600px] flex flex-col">
            
-           <div class="relative p-8 md:p-12 border-2 rounded-xl shadow-2xl overflow-hidden" :class="[theme.colors.card, theme.colors.border]">
-               <!-- Result Ribbon -->
-               <div v-if="gameState.submissions[gameState.revealedIndex].authorId !== myId" 
-                    class="absolute top-0 right-0 left-0 h-2 bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>
+           <!-- MAIN CARD CONTAINER -->
+           <div class="flex-grow flex flex-col rounded-xl shadow-2xl overflow-hidden border-2 transition-all duration-500"
+                :class="[theme.colors.card, theme.colors.border]">
                
-              <p class="text-2xl md:text-3xl font-serif italic text-white mb-8">
-                 "{{ gameState.submissions[gameState.revealedIndex].text }}"
-              </p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-slate-700 pt-8 text-left">
-                  <!-- 1. Identity -->
-                  <div>
-                      <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">AUTHOR IDENTITY</p>
-                      <div class="flex items-center gap-2">
-                          <UserCircle class="w-5 h-5 text-slate-400" />
-                          <p class="text-lg font-bold text-white">{{ gameState.players.find(p => p.id === gameState.submissions[gameState.revealedIndex].authorId)?.name || 'Unknown' }}</p>
-                      </div>
-                  </div>
+               <!-- TOP 2/3: Author, Quote, Votes, Verdict -->
+               <div class="relative flex-[2] border-b border-white/10 p-8 flex flex-col gap-6 items-center text-center">
+                   
+                   <!-- Row 1: Author (Visible Step 0) -->
+                    <div class="w-full flex items-center justify-center gap-3 animate-fade-in-down">
+                        <UserCircle class="w-8 h-8 text-slate-400" />
+                        <div class="text-left">
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest leading-none">AUTHOR</p>
+                            <p class="text-xl font-bold text-white leading-none">
+                                {{ authorName }}
+                            </p>
+                        </div>
+                    </div>
 
-                  <!-- 2. Source Truth -->
-                  <div>
-                      <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{{ theme.copy.manualLabel }} / {{ theme.copy.ghostLabel }}</p>
-                      <div v-if="gameState.submissions[gameState.revealedIndex].source === 'AI'" class="flex items-center gap-2">
-                          <Zap class="w-5 h-5 text-purple-400" />
-                          <p class="text-lg font-bold text-purple-400 glitch-text">{{ theme.copy.ghostLabel }} [{{ getAgentName(gameState.submissions[gameState.revealedIndex].agent) }}]</p>
-                      </div>
-                      <div v-else class="flex items-center gap-2">
-                          <User class="w-5 h-5 text-blue-400" />
-                          <p class="text-lg font-bold text-blue-400">{{ theme.copy.manualLabel }}</p>
-                      </div>
-                  </div>
+                    <!-- Row 2: Quote (Visible Step 0) -->
+                    <div class="flex-grow flex items-center justify-center w-full">
+                        <p class="text-2xl md:text-4xl font-serif italic text-white leading-relaxed animate-fade-in-up">
+                            "{{ currentSubmission.text }}"
+                        </p>
+                    </div>
 
-                  <!-- 3. Stats -->
-                  <div>
-                      <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">VOTE ANALYTICS</p>
-                      <div class="flex gap-4 text-sm font-mono">
-                          <span class="text-blue-400 font-bold">{{ theme.copy.voteHuman }}: {{ Object.values(gameState.submissions[gameState.revealedIndex].votes).filter(v => v === 'HUMAN').length }}</span>
-                          <span class="text-purple-400 font-bold">{{ theme.copy.voteBot }}: {{ Object.values(gameState.submissions[gameState.revealedIndex].votes).filter(v => v === 'BOT').length }}</span>
-                      </div>
-                  </div>
-              </div>
+                    <!-- Row 3: Votes (Visible Step 1) -->
+                   <transition name="fade-slide">
+                       <div v-if="step >= 1" class="w-full">
+                           <div class="flex justify-between text-xs uppercase font-bold mb-2">
+                               <span class="text-blue-400">{{ theme.copy.voteHuman }} ({{ stats.human }})</span>
+                               <span class="text-purple-400">{{ theme.copy.voteBot }} ({{ stats.bot }})</span>
+                           </div>
+                           <div class="h-4 bg-slate-900 rounded-full overflow-hidden flex relative shadow-inner">
+                                <div class="bg-blue-500 h-full transition-all duration-1000 ease-out"
+                                     :style="{ width: `${(stats.human / stats.total) * 100}%` }"></div>
+                                <div class="bg-purple-500 h-full transition-all duration-1000 ease-out"
+                                     :style="{ width: `${(stats.bot / stats.total) * 100}%` }"></div>
+                           </div>
+                           <!-- My Vote -->
+                           <div v-if="myVote && !isMySubmission" class="mt-2 text-center text-[10px] font-bold flex items-center justify-center gap-2 opacity-70">
+                                <span class="text-slate-400">YOU VOTED:</span>
+                                <span :class="myVote === 'HUMAN' ? 'text-blue-400' : 'text-purple-400'">{{ myVote }}</span>
+                           </div>
+                       </div>
+                   </transition>
 
-              <!-- My Guess Result -->
-              <div v-if="gameState.submissions[gameState.revealedIndex].authorId !== myId" class="mt-8 bg-black/30 p-4 rounded flex items-center justify-between border border-slate-700">
-                  <span class="text-xs text-slate-400 uppercase">YOUR ASSESSMENT:</span>
-                  <div class="flex items-center gap-2 font-bold">
-                      <span :class="gameState.submissions[gameState.revealedIndex].votes[myId] === 'HUMAN' ? 'text-blue-400' : 'text-purple-400'">
-                          {{ gameState.submissions[gameState.revealedIndex].votes[myId] || 'SKIPPED' }}
-                      </span>
-                      
-                      <template v-if="gameState.submissions[gameState.revealedIndex].votes[myId]">
-                        <span v-if="(gameState.submissions[gameState.revealedIndex].votes[myId] === 'HUMAN' && gameState.submissions[gameState.revealedIndex].source !== 'AI') || 
-                                    (gameState.submissions[gameState.revealedIndex].votes[myId] === 'BOT' && gameState.submissions[gameState.revealedIndex].source === 'AI')" 
-                                class="bg-green-500 text-black text-[10px] px-2 py-0.5 rounded font-bold">
-                            CORRECT (+1)
-                        </span>
-                        <span v-else class="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded font-bold">
-                            WRONG
-                        </span>
-                      </template>
-                  </div>
-              </div>
+                   <!-- STAMP (Visible Step 2) - Absolute Centered in 2/3 Partition -->
+                   <transition name="stamp-in">
+                       <div v-if="step >= 2" class="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
+                            <div class="border-8 px-10 py-6 rounded-lg transform -rotate-12 backdrop-blur-sm bg-black/40 shadow-2xl"
+                                 :class="[theme.reveal?.stampBorder || 'border-white']">
+                                <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter whitespace-nowrap"
+                                    :class="[theme.reveal?.stampColor || 'text-white']">
+                                    {{ verdict }}
+                                </h1>
+                            </div>
+                       </div>
+                   </transition>
+               </div>
 
-              <!-- SCORING BREAKDOWN FOR ME -->
-              <div v-if="gameState.submissions[gameState.revealedIndex].authorId === myId" class="mt-8 bg-green-900/20 p-4 rounded border border-green-500/50">
-                  <span class="text-xs text-green-400 uppercase tracking-widest">{{ theme.copy.revealHeader }}</span>
-                  <div class="flex justify-between items-center mt-2">
-                      <div class="text-sm text-slate-300">
-                          <span v-if="gameState.submissions[gameState.revealedIndex].source === 'AI'">
-                              {{ theme.copy.strategyLabel }}: <b class="text-purple-400">{{ theme.copy.ghostLabel }}</b>
-                          </span>
-                          <span v-else>
-                              {{ theme.copy.strategyLabel }}: <b class="text-blue-400">{{ theme.copy.manualLabel }}</b>
-                          </span>
-                      </div>
-                      
-                      <!-- Calculate Result -->
-                      <div class="text-xl font-bold">
-                          <!-- Logic: 
-                               AI + Majority HUMAN = +3
-                               AI + Majority BOT = 0
-                               HUMAN + Majority BOT = +2
-                               HUMAN + Majority HUMAN = +1
-                          -->
-                             <!-- We need to calculate majority locally for display -->
-                             <span v-if="Object.values(gameState.submissions[gameState.revealedIndex].votes).filter(v => v === 'HUMAN').length >= Object.values(gameState.submissions[gameState.revealedIndex].votes).filter(v => v === 'BOT').length">
-                                 <!-- Majority Human -->
-                                 <span v-if="gameState.submissions[gameState.revealedIndex].source === 'AI'" class="text-green-400">FOOLED (+3)</span>
-                                 <span v-else class="text-blue-300">SAFE (+1)</span>
-                             </span>
-                             <span v-else>
-                                 <!-- Majority Bot -->
-                                 <span v-if="gameState.submissions[gameState.revealedIndex].source === 'AI'" class="text-red-500">CAUGHT (0)</span>
-                                 <span v-else class="text-green-400">FAKED (+2)</span>
-                             </span>
-                      </div>
-                  </div>
-              </div>
+               <!-- BOTTOM 1/3: Strategy + Result -->
+               <div class="flex-[1] grid grid-cols-2 bg-black/20">
+                   
+                   <!-- LEFT: Strategy (Visible Step 3) -->
+                   <div class="border-r border-white/10 p-6 flex flex-col items-center justify-center text-center">
+                        <transition name="fade-slide">
+                            <div v-if="step >= 3 && currentSubmission.source === 'AI'" class="w-full">
+                                <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{{ theme.reveal?.strategyHeader || 'STRATEGY' }}</p>
+                                <p class="text-purple-400 font-bold glitch-text text-xl md:text-2xl break-words leading-tight">
+                                    {{ getAgentName(currentSubmission.agent) }}
+                                </p>
+                            </div>
+                            <!-- If Human, maybe show something else? Or just blank/Author Human? -->
+                            <div v-else-if="step >= 3" class="w-full opacity-50">
+                                <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{{ theme.reveal?.strategyHeader || 'SOURCE' }}</p>
+                                <p class="text-white font-bold text-xl">HUMAN</p>
+                            </div>
+                        </transition>
+                   </div>
+
+                   <!-- RIGHT: Score/Result (Visible Step 4) -->
+                   <div class="p-6 flex flex-col items-center justify-center text-center">
+                        <transition name="bounce-in">
+                             <div v-if="step >= 4" class="w-full">
+                                 <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{{ theme.reveal?.resultHeader || 'RESULT' }}</p>
+                                 
+                                     <!-- CASE A: MY SUBMISSION -->
+                                     <div v-if="isMySubmission">
+                                         <div v-if="currentSubmission.source === 'AI'">
+                                             <div v-if="stats.human >= stats.bot" class="text-green-400 font-bold flex flex-col items-center gap-1">
+                                                <CheckCircle class="w-8 h-8" /> 
+                                                <span>FOOLED (+3)</span>
+                                             </div>
+                                             <div v-else class="text-red-500 font-bold flex flex-col items-center gap-1">
+                                                <XCircle class="w-8 h-8" /> 
+                                                <span>CAUGHT (0)</span>
+                                             </div>
+                                         </div>
+                                         <div v-else>
+                                             <div v-if="stats.bot > stats.human" class="text-green-400 font-bold flex flex-col items-center gap-1">
+                                                <CheckCircle class="w-8 h-8" /> 
+                                                <span>FAKED (+2)</span>
+                                             </div>
+                                             <div v-else class="text-blue-300 font-bold flex flex-col items-center gap-1">
+                                                <CheckCircle class="w-8 h-8" /> 
+                                                <span>SAFE (+1)</span>
+                                             </div>
+                                         </div>
+                                     </div>
+
+                                     <!-- CASE B: I VOTED -->
+                                     <div v-else>
+                                         <div v-if="!myVote" class="text-slate-500 font-bold flex flex-col items-center gap-1">
+                                              <MinusCircle class="w-8 h-8" /> 
+                                              <span>SKIPPED (0)</span>
+                                         </div>
+                                         <div v-else-if="(myVote === 'HUMAN' && currentSubmission.source !== 'AI') || (myVote === 'BOT' && currentSubmission.source === 'AI')"
+                                              class="text-green-500 font-bold flex flex-col items-center gap-1">
+                                              <CheckCircle class="w-8 h-8" /> 
+                                              <span>CORRECT (+1)</span>
+                                         </div>
+                                         <div v-else class="text-red-500 font-bold flex flex-col items-center gap-1">
+                                              <XCircle class="w-8 h-8" /> 
+                                              <span>WRONG (0)</span>
+                                         </div>
+                                     </div>
+                             </div>
+                        </transition>
+                   </div>
+               </div>
 
            </div>
 
-           <!-- Host Control -->
-           <div v-if="isHost" class="mt-8">
-               <button @click="nextReveal" data-testid="next-reveal-btn" 
+           <!-- HOST CONTROLS -->
+           <div v-if="isHost" class="fixed bottom-8 left-0 right-0 flex justify-center z-50">
+               <button @click="advanceStep" 
+                       data-testid="reveal-advance-btn"
                        :class="theme.colors.button"
-                       class="font-bold py-3 px-8 rounded shadow-lg text-white">
-                   {{ theme.copy.revealNext }}
+                       class="font-bold py-4 px-12 rounded-full shadow-2xl text-xl transform hover:scale-105 transition-all flex items-center gap-2 border-2 border-white/20 active:scale-95">
+                   <span v-if="step < 4">NEXT STEP >></span>
+                   <span v-else>{{ theme.copy.revealNext }}</span>
                </button>
            </div>
+           
+           <div v-else class="fixed bottom-8 text-center w-full text-slate-500 animate-pulse">
+               <span v-if="step < 4">Revealing...</span>
+               <span v-else>Waiting for next response...</span>
+           </div>
+
        </div>
     </div>
 </template>
 
 <style scoped>
+/* Stamp Animation */
+.stamp-in-enter-active {
+  animation: stamp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.stamp-in-leave-active {
+  transition: opacity 0.2s;
+}
+.stamp-in-leave-to {
+  opacity: 0;
+}
+
+@keyframes stamp {
+  0% { transform: scale(3) rotate(0deg); opacity: 0; }
+  50% { transform: scale(0.9) rotate(-12deg); opacity: 1; }
+  75% { transform: scale(1.05) rotate(-12deg); }
+  100% { transform: scale(1) rotate(-12deg); }
+}
+
+/* Fade Slide Animation */
+.fade-slide-enter-active {
+  transition: all 0.5s ease-out;
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.fade-slide-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.animate-fade-in-down {
+    animation: fade-in-down 0.5s ease-out;
+}
+@keyframes fade-in-down {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out;
+}
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Bounce In Animation */
+.bounce-in-enter-active {
+  animation: bounce-in 0.5s;
+}
+@keyframes bounce-in {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Subtle Glitch */
 .glitch-text {
-  text-shadow: 1px 1px 0px rgba(255, 0, 255, 0.3), -1px -1px 0px rgba(0, 255, 0, 0.3);
-  animation: glitch 3s infinite;
+  text-shadow: 1px 0 rgba(255,0,255,0.3), -1px 0 rgba(0,255,255,0.3);
+  animation: glitch 3s infinite alternate; /* Slower, subtle */
+}
+@keyframes glitch {
+    0% { opacity: 0.9; }
+    20% { opacity: 1; transform: translateX(0); }
+    22% { opacity: 0.9; transform: translateX(-1px); }
+    24% { opacity: 1; transform: translateX(1px); }
+    100% { opacity: 1; transform: translateX(0); }
 }
 </style>

@@ -4,7 +4,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import GameScreen from '../src/components/GameScreen.vue';
 import { usePeer } from '../src/composables/usePeer';
 import { THEMES } from '../src/config/themes';
-import { reactive, nextTick } from 'vue';
+import { reactive, nextTick, ref } from 'vue';
 import Lobby from '../src/components/Lobby.vue';
 
 // --- State Factory ---
@@ -21,7 +21,8 @@ const createDefaultState = () => ({
     prompt: "Default Mock Prompt",
     settings: { roundDuration: 60, provider: 'gemini', apiKey: '' },
     finishedVotingIDs: [],
-    revealedIndex: -1
+    revealedIndex: -1,
+    revealStep: 0
 });
 
 // We use a reactive object that we will mutate/reset in beforeEach
@@ -45,6 +46,14 @@ const mockActions = {
     }),
     nextReveal: vi.fn(() => {
         mockGameState.revealedIndex++;
+        mockGameState.revealStep = 0;
+    }),
+    nextRevealStep: vi.fn(() => {
+        if (mockGameState.revealStep < 4) {
+            mockGameState.revealStep++;
+        } else {
+            mockActions.nextReveal();
+        }
     }),
     nextRound: vi.fn(() => {
         mockGameState.round++;
@@ -72,7 +81,7 @@ const mockActions = {
 vi.mock('../src/composables/usePeer', () => ({
     usePeer: () => ({
         gameState: mockGameState,
-        myId: 'p1',
+        myId: ref('p1'),
         // In our tests, we often want to be Host. 
         // We can create a computed-like ref for isHost or just hardcode it?
         // The real usePeer uses a ref. Mocking it as a simple property is easiest,
@@ -366,10 +375,13 @@ describe('GameScreen Integration', () => {
 
         expect(wrapper.text()).toContain("P2 Answer");
 
-        const nextBtn = wrapper.find('[data-testid="next-reveal-btn"]');
+        const nextBtn = wrapper.find('[data-testid="reveal-advance-btn"]');
         expect(nextBtn.exists()).toBe(true);
 
-        await nextBtn.trigger('click');
+        // Drumroll has 5 steps (0->4), so we click 5 times to trigger nextReveal
+        for (let i = 0; i < 5; i++) {
+            await nextBtn.trigger('click');
+        }
         expect(mockActions.nextReveal).toHaveBeenCalled();
     });
 

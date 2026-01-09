@@ -40,6 +40,14 @@ export const THEMES = {
                 VOTING: 'VIBE CHECK',
                 REVEAL: 'EXPOSING FAKES',
                 FINISH: 'FINAL RATIO'
+            },
+            reveal: {
+                verdictHuman: 'VERIFIED',
+                verdictAi: 'BOT DETECTED',
+                stampColor: 'text-cyan-400',
+                stampBorder: 'border-cyan-400',
+                resultHeader: 'ENGAGEMENT',
+                strategyHeader: 'TACTIC'
             }
         },
         agents: [
@@ -100,6 +108,14 @@ export const THEMES = {
                 VOTING: 'PEER REVIEW',
                 REVEAL: 'PUBLISHING RESULTS',
                 FINISH: 'GRADES POSTED'
+            },
+            reveal: {
+                verdictHuman: 'ORIGINAL WORK',
+                verdictAi: 'PLAGIARISM',
+                stampColor: 'text-amber-500',
+                stampBorder: 'border-amber-500',
+                resultHeader: 'GRADE',
+                strategyHeader: 'METHODOLOGY'
             }
         },
         agents: [
@@ -160,6 +176,14 @@ export const THEMES = {
                 VOTING: 'CONSENSUS PROTOCOL',
                 REVEAL: 'DECRYPTING HASH',
                 FINISH: 'FILE CLOSED'
+            },
+            reveal: {
+                verdictHuman: 'ACCESS GRANTED',
+                verdictAi: 'MALWARE FOUND',
+                stampColor: 'text-green-400',
+                stampBorder: 'border-green-400',
+                resultHeader: 'BOUNTY',
+                strategyHeader: 'PROTOCOL'
             }
         },
         agents: [
@@ -220,6 +244,14 @@ export const THEMES = {
                 VOTING: 'VOTE NOW',
                 REVEAL: 'THE REVEAL',
                 FINISH: 'ROUND OVER'
+            },
+            reveal: {
+                verdictHuman: 'HUMAN',
+                verdictAi: 'GHOST WRITER',
+                stampColor: 'text-emerald-400',
+                stampBorder: 'border-emerald-400',
+                resultHeader: 'RESULTS',
+                strategyHeader: 'TRUE AUTHOR'
             }
         },
         agents: [

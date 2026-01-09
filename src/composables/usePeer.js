@@ -4,6 +4,8 @@ import { fetchAI } from '../services/ai';
 import { THEMES } from '../config/themes';
 
 // Singleton State
+let revealTimer = null;
+
 const gameState = reactive({
     phase: 'LOBBY',
     currentTheme: 'classic',
@@ -17,6 +19,7 @@ const gameState = reactive({
     submissions: [],
     finishedVotingIDs: [],
     revealedIndex: -1,
+    revealStep: 0,
     settings: {
         provider: 'gemini',
         apiKey: '',
@@ -252,6 +255,7 @@ export function usePeer() {
         gameState.votes = {};
         gameState.finishedVotingIDs = [];
         gameState.revealedIndex = -1;
+        gameState.revealStep = 0;
         generateNewPrompt();
         broadcastState();
 
@@ -317,17 +321,42 @@ export function usePeer() {
     const startReveal = () => {
         gameState.phase = 'REVEAL';
         gameState.revealedIndex = -1;
+        gameState.revealStep = 0;
         nextReveal();
     };
 
     const nextReveal = () => {
+        if (revealTimer) clearInterval(revealTimer);
+
         if (gameState.revealedIndex < gameState.submissions.length - 1) {
             gameState.revealedIndex++;
-            // Scoring happens here? Or at end?
-            // Let's score as we reveal
+            gameState.revealStep = 0; // Reset step for new card
             broadcastState(); // Client shows animation
+
+            // Auto-advance sequence (Host only)
+            if (isHost.value) {
+                revealTimer = setInterval(() => {
+                    if (gameState.revealStep < 4) {
+                        gameState.revealStep++;
+                        broadcastState();
+                    } else {
+                        clearInterval(revealTimer);
+                    }
+                }, 2000);
+            }
         } else {
             endRound();
+        }
+    };
+
+    const nextRevealStep = () => {
+        if (!isHost.value) return;
+
+        if (gameState.revealStep < 4) {
+            gameState.revealStep++;
+            broadcastState();
+        } else {
+            nextReveal();
         }
     };
 
@@ -398,6 +427,7 @@ export function usePeer() {
     };
 
     const resetGame = () => {
+        if (revealTimer) clearInterval(revealTimer);
         // Reset all state to default
         gameState.phase = 'LOBBY';
         gameState.roomCode = '';
@@ -447,6 +477,7 @@ export function usePeer() {
         startRound,
         nextRound, // Exposed
         nextReveal,
+        nextRevealStep,
         leaveGame, // Exposed
 
         // Actions
