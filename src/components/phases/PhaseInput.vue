@@ -94,7 +94,7 @@ const submitGhost = (text) => {
 <template>
     <div class="w-full flex-grow flex flex-col relative">
        <div class="text-center mb-8">
-          <p class="text-slate-400 text-sm mb-2">TARGET PROMPT</p>
+          <p class="text-xs uppercase tracking-widest mb-2" :class="theme.colors.accent">{{ theme.copy.transitions.PROMPT }}</p>
           <h2 class="text-xl md:text-2xl text-white font-bold">"{{ gameState.prompt }}"</h2>
        </div>
 

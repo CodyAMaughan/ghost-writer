@@ -5,6 +5,7 @@ import { User, Server, Key, LogIn, Users, Play } from 'lucide-vue-next';
 
 import { THEMES } from '../config/themes';
 import { computed } from 'vue';
+import ApiKeyHelpModal from './ApiKeyHelpModal.vue';
 
 const { initHost, joinGame, gameState, myId, myName, startGame, isHost, leaveGame, setTheme } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
@@ -16,6 +17,8 @@ const form = ref({
   provider: 'gemini',
   apiKey: localStorage.getItem('gw_api_key') || ''
 });
+
+const showKeyHelp = ref(false);
 
 const handleHost = () => {
   if(!form.value.name || !form.value.apiKey) return alert("Name & API Key required");
@@ -96,7 +99,10 @@ const copyCode = () => {
             <input v-model="form.apiKey" type="password" data-testid="host-api-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-opacity-100 text-white placeholder-slate-600" :class="`focus:${theme.colors.border}`" placeholder="sk-..." />
             <Key class="absolute right-3 top-3.5 w-4 h-4 text-slate-500" />
           </div>
-          <p class="text-[10px] text-slate-500 mt-1">Key is stored locally. Never sent to our servers.</p>
+          <div class="flex justify-between items-center mt-1">
+             <p class="text-[10px] text-slate-500">Key is stored locally. Never sent to our servers.</p>
+             <button @click="showKeyHelp = true" class="text-[10px] text-blue-400 hover:text-blue-300 underline">Need a key?</button>
+          </div>
         </div>
         <div class="flex gap-2 pt-4">
           <button @click="mode = 'LANDING'" class="flex-1 py-3 text-slate-400 hover:text-white">BACK</button>
@@ -199,5 +205,6 @@ const copyCode = () => {
       </div>
     </div>
 
+    <ApiKeyHelpModal :isOpen="showKeyHelp" @close="showKeyHelp = false" />
   </div>
 </template>

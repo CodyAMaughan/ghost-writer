@@ -160,5 +160,59 @@ export const THEMES = {
             "What defines 'real'?",
             "Protocol Omega initiated. Reason:"
         ]
+    },
+    classic: {
+        id: 'classic',
+        name: 'Classic Party',
+        font: 'font-sans',
+        colors: {
+            bg: 'bg-slate-900',
+            card: 'bg-slate-800',
+            text: 'text-slate-100',
+            accent: 'text-emerald-400',
+            button: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+            border: 'border-emerald-500/50'
+        },
+        copy: {
+            manualInputLabel: 'Your Answer',
+            ghostInputLabel: 'AI Answer',
+            ghostSubtext: 'Let AI write for you',
+            submitBtn: 'Submit Answer',
+            waiting: 'Waiting for players...',
+            uploadComplete: 'ANSWER SUBMITTED',
+            voteHuman: 'WRITTEN BY HUMAN',
+            voteBot: 'WRITTEN BY AI',
+            revealTitle: 'THE RESULTS',
+            revealNext: 'NEXT ANSWER >',
+            startGameBtn: 'START GAME',
+            submitVotesBtn: 'SUBMIT VOTES',
+            revealHeader: 'RESULTS',
+            strategyLabel: 'STRATEGY',
+            manualLabel: 'HUMAN',
+            ghostLabel: 'AI',
+            transitions: {
+                PROMPT: 'NEW PROMPT',
+                INPUT: 'WRITE YOUR ANSWER',
+                VOTING: 'VOTE NOW',
+                REVEAL: 'THE REVEAL',
+                FINISH: 'ROUND OVER'
+            }
+        },
+        agents: [
+            { id: 'comedian', name: 'The Comedian', description: 'Always tries to be funny.', systemPrompt: 'You are a stand-up comedian. Try to be funny and make a joke about the prompt. Keep response under 15 words.' },
+            { id: 'expert', name: 'The Expert', description: 'Knows everything, highly confident.', systemPrompt: 'You are an incredibly confident expert. State facts (even if wrong) with authority. Keep response under 15 words.' },
+            { id: 'skeptic', name: 'The Skeptic', description: 'Doubts everything.', systemPrompt: 'You are a skeptic. Question the premise of the prompt. Be suspicious. Keep response under 15 words.' },
+            { id: 'optimist', name: 'The Optimist', description: 'Super happy and positive.', systemPrompt: 'You are an eternal optimist. Find the silver lining. Be excessively happy. Keep response under 15 words.' },
+            { id: 'child', name: 'The Child', description: 'Innocent and literal.', systemPrompt: 'You are a young child. Answer literally and innocently. Keep response under 15 words.' }
+        ],
+        prompts: [
+            "What is the best pizza topping?",
+            "Explain why cats are better than dogs.",
+            "What would you do with a million dollars?",
+            "Describe your perfect day.",
+            "What's the worst gift you ever received?",
+            "If you could have any superpower, what would it be?",
+            "What's the meaning of life (wrong answers only)?"
+        ]
     }
 };

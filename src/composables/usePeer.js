@@ -6,7 +6,7 @@ import { THEMES } from '../config/themes';
 // Singleton State
 const gameState = reactive({
     phase: 'LOBBY',
-    currentTheme: 'viral',
+    currentTheme: 'classic',
     roomCode: '',
     hostId: '',
     round: 1,

@@ -28,6 +28,17 @@ const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
       <div class="p-6 overflow-y-auto space-y-6 text-slate-300">
          
          <section>
+            <h3 class="text-white font-bold mb-2 flex items-center gap-2"><Check class="w-4 h-4" /> OVERVIEW</h3>
+            <p class="text-sm mb-2">
+               <b>Ghost Writer</b> is a satirical party game exploring the blurred lines between human creativity and Artificial Intelligence.
+               In a world where AI generates content instantly, can you tell what's real?
+            </p>
+            <p class="text-sm text-slate-400 italic">
+               *Ghost Writer: A hired writer who authors text that is officially credited to another person.*
+            </p>
+         </section>
+
+         <section>
             <h3 class="text-white font-bold mb-2 flex items-center gap-2"><EyeOff class="w-4 h-4" /> OBJECTIVE</h3>
             <p class="text-sm">
                In each round, answer the prompt. You can write the answer yourself (HUMAN) or ask an AI Agent to write it for you (GHOST).
