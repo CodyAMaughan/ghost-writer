@@ -90,6 +90,25 @@ describe('PhaseFinish.vue', () => {
     it('starts confetti and audio on mount', () => {
         mount(PhaseFinish);
         expect(mockPlaySfx).toHaveBeenCalledWith('WINNER');
-        expect(mockPlayMusic).toHaveBeenCalledWith('BGM_LOBBY');
+    });
+
+    it('only shows confetti on final round', async () => {
+        const confettiModule = await import('canvas-confetti');
+        const confetti = vi.mocked(confettiModule.default);
+
+        // Round 1 of 5 - no confetti
+        mockPeer.gameState.round = 1;
+        mockPeer.gameState.maxRounds = 5;
+        mount(PhaseFinish);
+        expect(confetti).not.toHaveBeenCalled();
+
+        // Clear and test final round
+        confetti.mockClear();
+
+        // Round 5 of 5 - confetti!
+        mockPeer.gameState.round = 5;
+        mockPeer.gameState.maxRounds = 5;
+        mount(PhaseFinish);
+        expect(confetti).toHaveBeenCalled();
     });
 });

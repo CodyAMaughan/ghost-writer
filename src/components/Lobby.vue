@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { useAudio } from '../composables/useAudio';
 import { User, Server, Key, LogIn, Users, Play, Ban } from 'lucide-vue-next';
@@ -21,9 +21,12 @@ const form = ref({
 });
 
 // AUDIO
-const { playMusic, playSfx } = useAudio();
+const { playMusic, stopMusic } = useAudio();
 onMounted(() => {
     playMusic('BGM_LOBBY');
+});
+onUnmounted(() => {
+    stopMusic();
 });
 
 const aiMode = ref('server'); // 'server' or 'custom'

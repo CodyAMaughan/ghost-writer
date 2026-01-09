@@ -21,23 +21,24 @@ const leaderboard = computed(() => {
 });
 
 onMounted(() => {
-    playMusic('BGM_LOBBY'); 
     playSfx('WINNER');
 
-    // Confetti Burst
-    const duration = 3000;
-    const end = Date.now() + duration;
+    // Confetti only on final round
+    if (gameState.round === gameState.maxRounds) {
+        const duration = 3000;
+        const end = Date.now() + duration;
 
-    (function frame() {
-        confetti({
-            particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 100
-        });
-        confetti({
-            particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 100
-        });
+        (function frame() {
+            confetti({
+                particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 100
+            });
+            confetti({
+                particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 100
+            });
 
-        if (Date.now() < end) requestAnimationFrame(frame);
-    }());
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
 });
 </script>
 

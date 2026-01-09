@@ -10,17 +10,6 @@ import PhaseInput from '../src/components/phases/PhaseInput.vue';
 // Mock fetch globally
 global.fetch = vi.fn();
 
-// Mock sessionStorage and localStorage
-const mockStorage = {
-    data: {},
-    getItem(key) { return this.data[key] || null; },
-    setItem(key, value) { this.data[key] = value; },
-    removeItem(key) { delete this.data[key]; },
-    clear() { this.data = {}; }
-};
-global.sessionStorage = mockStorage;
-global.localStorage = { ...mockStorage, data: {} };
-
 // Vi mock for usePeer
 vi.mock('../src/composables/usePeer', () => {
     const { reactive } = require('vue');

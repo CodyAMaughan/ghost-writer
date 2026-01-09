@@ -64,9 +64,8 @@ watch(() => gameState.currentTheme, () => {
 });
 
 watch(timer, (val) => {
-    if (activePhase.value === 'INPUT' && val > 0 && val <= 30) { 
-        // Only tick in last 30s? Or all time? User said "time is running short".
-        if (val <= 10) playSfx('TIMER_URGENT');
+    if (activePhase.value === 'INPUT' && val > 0 && val <= 15) {
+        if (val <= 5) playSfx('TIMER_URGENT');
         else playSfx('TIMER_TICK');
     }
 });
