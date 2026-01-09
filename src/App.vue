@@ -30,12 +30,6 @@ const accentHex = computed(() => {
 
 const shareMenuOpen = ref(false);
 
-const checkClickOutside = (e) => {
-    // Simple directive logic would be better but keeping it simple for now
-    // If we click anything that isn't the share button, close it.
-    // Actually, let's just use v-if toggle.
-};
-
 const shareTo = (platform) => {
     const text = `I'm playing Ghost Writer! Can you tell which answer was written by AI? 👻✍️`;
     const url = window.location.href;
@@ -113,17 +107,28 @@ onMounted(() => {
             </div>
             
             <!-- Icons -->
-            <div class="flex gap-3 relative">
-                 <button @click="shareMenuOpen = !shareMenuOpen" class="text-slate-500 hover:text-white transition-colors" title="Share">
+            <div class="flex gap-3 relative z-50">
+                 <!-- Backdrop for click outside -->
+                 <div v-if="shareMenuOpen" class="fixed inset-0 z-40 cursor-default" @click="shareMenuOpen = false"></div>
+
+                 <button @click="shareMenuOpen = !shareMenuOpen" class="text-slate-500 hover:text-white transition-colors relative z-50" title="Share">
                      <Share2 class="w-6 h-6" />
                  </button>
                  
                  <!-- Dropdown -->
-                 <div v-if="shareMenuOpen" class="absolute top-10 right-0 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 flex flex-col overflow-hidden">
-                     <button @click="shareTo('twitter')" class="px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-b border-slate-700">Share on X</button>
-                     <button @click="shareTo('reddit')" class="px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-b border-slate-700">Share on Reddit</button>
-                     <button @click="shareTo('linkedin')" class="px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-b border-slate-700">Share on LinkedIn</button>
-                     <button @click="shareTo('whatsapp')" class="px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white">Share on WhatsApp</button>
+                 <div v-if="shareMenuOpen" class="absolute top-12 right-0 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 flex flex-col overflow-hidden animate-fade-in-down">
+                     <button @click="shareTo('twitter')" class="px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-b border-slate-700 flex items-center gap-3">
+                        <img src="https://www.google.com/s2/favicons?domain=x.com&sz=64" alt="X" class="w-4 h-4 rounded-sm" /> Share on X
+                     </button>
+                     <button @click="shareTo('reddit')" class="px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-b border-slate-700 flex items-center gap-3">
+                        <img src="https://www.google.com/s2/favicons?domain=reddit.com&sz=64" alt="Reddit" class="w-4 h-4" /> Share on Reddit
+                     </button>
+                     <button @click="shareTo('linkedin')" class="px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white border-b border-slate-700 flex items-center gap-3">
+                        <img src="https://www.google.com/s2/favicons?domain=linkedin.com&sz=64" alt="LinkedIn" class="w-4 h-4" /> Share on LinkedIn
+                     </button>
+                     <button @click="shareTo('whatsapp')" class="px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-3">
+                        <img src="https://www.google.com/s2/favicons?domain=whatsapp.com&sz=64" alt="WhatsApp" class="w-4 h-4" /> Share on WhatsApp
+                     </button>
                  </div>
 
                  <button @click="showCustom = true" class="text-slate-500 hover:text-purple-400 transition-colors" title="Edit Custom Personality">
