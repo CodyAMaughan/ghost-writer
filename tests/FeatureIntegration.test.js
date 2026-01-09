@@ -53,7 +53,7 @@ vi.mock('../src/composables/usePeer', () => {
             nextRound: vi.fn(),
             startGame: vi.fn(),
             restartGame: vi.fn(),
-            getGhostOptions: vi.fn(),
+            getGhostOptions: vi.fn().mockResolvedValue(['A1', 'A2', 'A3']),
             initHost: vi.fn(),
             joinGame: vi.fn(),
             generateNewPrompt: async () => {
