@@ -115,6 +115,12 @@ export function usePeer() {
         connectionError.value = ''; // Clear any previous errors
         isPending.value = false; // Reset pending state
 
+        // Cleanup existing peer if any to efficiently handle re-attempts
+        if (peer) {
+            peer.destroy();
+            peer = null;
+        }
+
         peer = new Peer();
 
         peer.on('open', (id) => {
@@ -156,6 +162,20 @@ export function usePeer() {
                         connMap.delete(senderId);
                         return;
                     }
+                }
+
+                // Check for duplicate names
+                const nameExists = gameState.players.some(p => p.name === msg.payload.name) ||
+                    gameState.pendingPlayers.some(p => p.name === msg.payload.name);
+
+                if (nameExists) {
+                    const conn = connMap.get(senderId);
+                    if (conn) {
+                        conn.send({ type: 'REJECTED', payload: { message: 'Name already taken' } });
+                        conn.close();
+                    }
+                    connMap.delete(senderId);
+                    return;
                 }
 
                 // Waiting room routing
@@ -252,7 +272,12 @@ export function usePeer() {
         console.log(`[CLIENT] Received ${msg.type}`, msg.payload);
         if (msg.type === 'SYNC') {
             Object.assign(gameState, msg.payload);
-            isPending.value = false; // No longer pending
+
+            // Fix: Only clear pending if I am actually in the game now
+            const amIInGame = gameState.players.some(p => p.id === myId.value);
+            if (amIInGame) {
+                isPending.value = false; // No longer pending
+            }
         } else if (msg.type === 'GHOST_OPTIONS') {
             if (pendingGhostResolve) {
                 pendingGhostResolve(msg.payload.options);
@@ -272,8 +297,18 @@ export function usePeer() {
             isPending.value = true; // Set pending state
         } else if (msg.type === 'REJECTED') {
             wasKicked = true; // Mark as intentional disconnect
-            alert(msg.payload.message || 'Host denied entry');
-            window.location.reload();
+
+            if (msg.payload.message === 'Name already taken') {
+                connectionError.value = msg.payload.message;
+                if (peer) {
+                    peer.destroy();
+                    peer = null;
+                }
+                hostConn = null;
+            } else {
+                alert(msg.payload.message || 'Host denied entry');
+                window.location.reload();
+            }
         } else if (msg.type === 'KICKED') {
             wasKicked = true; // Mark as intentional disconnect
             alert(msg.payload.message || 'You have been removed from the game');
@@ -659,18 +694,19 @@ export function usePeer() {
         kickPlayer: (playerId) => {
             if (!isHost.value) return;
 
-            // Remove from active players
-            removePlayer(playerId);
-
-            // Close connection
+            // Get connection BEFORE removing player so we can send the message
             const conn = connMap.get(playerId);
             if (conn) {
                 conn.send({ type: 'KICKED', payload: { message: 'You have been removed from the game' } });
-                conn.close();
-            }
-            connMap.delete(playerId);
 
-            broadcastState();
+                // Wait for message to flush before closing
+                setTimeout(() => {
+                    conn.close();
+                }, 500);
+            }
+
+            // Remove from active players (clears connMap and broadcasts)
+            removePlayer(playerId);
         },
         returnToLobby: () => {
             if (!isHost.value) return;

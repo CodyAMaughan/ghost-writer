@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { reactive, nextTick } from 'vue';
 import Lobby from '../src/components/Lobby.vue';
+import { usePeer } from '../src/composables/usePeer'; // Top-level import
+
+// Mock AI service to prevent import errors (same as integration tests)
+vi.mock('../src/services/ai', () => ({
+    fetchAI: vi.fn()
+}));
 
 // --- State Factory ---
 const createDefaultState = () => ({
@@ -100,15 +106,23 @@ const mockActions = {
 };
 
 // Mock usePeer
-vi.mock('../src/composables/usePeer', () => ({
-    usePeer: () => ({
-        gameState: mockGameState,
-        isHost: mockIsHost,
-        myId: mockMyId,
-        myName: mockMyName,
-        ...mockActions
-    })
-}));
+vi.mock('../src/composables/usePeer', () => {
+    const { ref } = require('vue'); // Import ref inside factory
+    const mockIsPending = ref(false);
+    const mockConnectionError = ref('');
+
+    return {
+        usePeer: () => ({
+            gameState: mockGameState,
+            isHost: mockIsHost, // These are defined outside, might need fixing too if they are plain objects
+            myId: mockMyId,
+            myName: mockMyName,
+            isPending: mockIsPending,
+            connectionError: mockConnectionError,
+            ...mockActions
+        })
+    };
+});
 
 // Mock useAudio
 vi.mock('../src/composables/useAudio', () => ({
@@ -126,6 +140,11 @@ describe('LobbyAdvanced - Advanced Lobby Controls', () => {
         mockIsHost.value = false;
         mockMyId.value = '';
         mockMyName.value = 'Test Player';
+
+        // Reset closure-based mocks via usePeer accessor
+        const peer = usePeer();
+        if (peer.isPending) peer.isPending.value = false;
+        if (peer.connectionError) peer.connectionError.value = '';
 
         // Clear mocks
         vi.clearAllMocks();
@@ -187,6 +206,50 @@ describe('LobbyAdvanced - Advanced Lobby Controls', () => {
 
             // Verify joinGame was called with password
             expect(mockActions.joinGame).toHaveBeenCalledWith('ABC123', 'Player1', 'mypass');
+        });
+
+        it('password fields have autocomplete=off to prevent password managers', async () => {
+            const wrapper = mount(Lobby);
+
+            // Check JOIN form password
+            await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
+            await nextTick();
+
+            const passwordInput = wrapper.find('[data-testid="join-password-input"]');
+            expect(passwordInput.attributes('autocomplete')).toBe('off');
+        });
+    });
+
+    describe('Pending State & Waiting Room UI', () => {
+        it('password autocomplete attribute prevents password manager interference', async () => {
+            const wrapper = mount(Lobby);
+
+            // Check both password fields have autocomplete=off
+            await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
+            await nextTick();
+
+            const joinPasswordInput = wrapper.find('[data-testid="join-password-input"]');
+            expect(joinPasswordInput.attributes('autocomplete')).toBe('off');
+        });
+    });
+
+    describe('Connection Error Handling', () => {
+        it('displays connectionError in JOIN form', async () => {
+            const { usePeer } = await import('../src/composables/usePeer');
+            const peerInstance = usePeer();
+
+            // Simulate auth error
+            peerInstance.connectionError.value = 'Incorrect password';
+
+            const wrapper = mount(Lobby);
+
+            // Navigate to join form
+            await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
+            await nextTick();
+
+            // Error should be displayed
+            const html = wrapper.html();
+            expect(html).toContain('Incorrect password');
         });
     });
 

@@ -13,6 +13,7 @@ const { initHost, joinGame, gameState, myId, myName, startGame, isHost, leaveGam
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
 const mode = ref('LANDING'); // LANDING, HOSTING, JOINING, WAITING
+const isConnecting = ref(false); // Track connection status to prevent multiple clicks
 const form = ref({
   name: '',
   code: '',
@@ -41,9 +42,19 @@ watch(connectionError, (error) => {
         // Clear password field, reset pending state, and return to join form
         form.value.password = '';
         isPending.value = false;
+        isConnecting.value = false; // Reset connecting state
         mode.value = 'JOINING';
     }
 });
+
+// Watch for successful join to switch UI mode
+watch(() => gameState.players, (newPlayers) => {
+    const amIInGame = newPlayers.some(p => p.id === myId.value);
+    if (amIInGame && mode.value === 'JOINING') {
+        mode.value = 'WAITING';
+        isConnecting.value = false;
+    }
+}, { deep: true });
 
 const aiMode = ref('server'); // 'server' or 'custom'
 
@@ -120,6 +131,9 @@ const handleHost = () => {
 
 const handleJoin = () => {
   if(!form.value.name || !form.value.code) return alert("Name & Room Code required");
+  if(isConnecting.value) return; // Prevent multiple clicks
+  
+  isConnecting.value = true;
   joinGame(form.value.code.toUpperCase(), form.value.name, form.value.password);
   // Don't change mode yet - wait for server confirmation
 };
@@ -261,6 +275,8 @@ const isTaken = (id) => {
               v-model="lobbySettings.password" 
               type="password"
               autocomplete="off"
+              data-lpignore="true"
+              data-form-type="other"
               placeholder="Set lobby password"
               class="mt-2 w-full bg-slate-900 border border-slate-700 p-2 rounded focus:outline-none focus:border-blue-500 text-white placeholder-slate-600"
             />
@@ -285,6 +301,28 @@ const isTaken = (id) => {
       </div>
     </div>
 
+    <!-- PENDING APPROVAL SCREEN -->
+    <div v-else-if="isPending" class="w-full max-w-md">
+      <div class="bg-black/50 border border-amber-700 rounded-xl p-12 backdrop-blur-md flex flex-col items-center gap-6">
+        <!-- Animated Ghost Logo -->
+        <div class="relative w-48 h-48 flex items-center justify-center">
+          <img src="/ghost_writer_logo.png" alt="Ghost Writer" class="w-full h-full object-contain animate-bounce" />
+        </div>
+        
+        <!-- Message -->
+        <div class="text-center space-y-2">
+          <h2 class="text-2xl font-bold text-amber-400">Waiting for Approval</h2>
+          <p class="text-slate-300">The host is reviewing your request to join...</p>
+          <p class="text-xs text-slate-500 mt-4">Room Code: <span class="font-bold tracking-widest">{{ gameState.roomCode }}</span></p>
+        </div>
+        
+        <!-- Cancel Button -->
+        <button @click="handleLeave" class="mt-4 text-xs text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-500 px-4 py-2 rounded transition-colors">
+          Cancel
+        </button>
+      </div>
+    </div>
+
     <!-- JOIN FORM -->
     <div v-else-if="mode === 'JOINING'" class="w-full bg-slate-800 p-8 rounded-lg border border-slate-600 shadow-2xl">
       <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-2">
@@ -306,6 +344,8 @@ const isTaken = (id) => {
             v-model="form.password" 
             type="password"
             autocomplete="off"
+            data-lpignore="true"
+            data-form-type="other"
             data-testid="join-password-input" 
             class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-slate-500 text-white placeholder-slate-600" 
             placeholder="Optional" 
@@ -318,31 +358,11 @@ const isTaken = (id) => {
         </div>
         
         <div class="flex gap-2 pt-4">
-          <button @click="mode = 'LANDING'" class="flex-1 py-3 text-slate-400 hover:text-white">BACK</button>
-          <button @click="handleJoin" data-testid="join-connect-btn" class="flex-[2] bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded">CONNECT</button>
+          <button @click="mode = 'LANDING'" class="flex-1 py-3 text-slate-400 hover:text-white" :disabled="isConnecting || isPending">BACK</button>
+          <button @click="handleJoin" data-testid="join-connect-btn" class="flex-[2] bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed" :disabled="isConnecting || isPending">
+            {{ isConnecting ? 'CONNECTING...' : 'CONNECT' }}
+          </button>
         </div>
-      </div>
-    </div>
-
-    <!-- PENDING APPROVAL SCREEN -->
-    <div v-else-if="isPending" class="w-full max-w-md">
-      <div class="bg-black/50 border border-amber-700 rounded-xl p-12 backdrop-blur-md flex flex-col items-center gap-6">
-        <!-- Animated Ghost Logo -->
-        <div class="relative w-48 h-48 flex items-center justify-center">
-          <img src="/ghost_writer_logo.png" alt="Ghost Writer" class="w-full h-full object-contain animate-bounce" />
-        </div>
-        
-        <!-- Message -->
-        <div class="text-center space-y-2">
-          <h2 class="text-2xl font-bold text-amber-400">Waiting for Approval</h2>
-          <p class="text-slate-300">The host is reviewing your request to join...</p>
-          <p class="text-xs text-slate-500 mt-4">Room Code: <span class="font-bold tracking-widest">{{ gameState.roomCode }}</span></p>
-        </div>
-        
-        <!-- Cancel Button -->
-        <button @click="handleLeave" class="mt-4 text-xs text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-500 px-4 py-2 rounded transition-colors">
-          Cancel
-        </button>
       </div>
     </div>
 
