@@ -26,8 +26,8 @@ exports.handler = async function (event, context) {
             };
         }
 
-        // 2. Abuse Check: System Prompt Length (~100 chars for custom agents)
-        if (systemPrompt && systemPrompt.length > 100) {
+        // 2. Abuse Check: System Prompt Length (~500 chars)
+        if (systemPrompt && systemPrompt.length > 500) {
             return {
                 statusCode: 400,
                 headers,
@@ -38,8 +38,10 @@ exports.handler = async function (event, context) {
         // 3. Construct Safe Call (Using Gemini Flash for reliability)
         const DEFAULT_SYSTEM_PROMPT = `You are a creative ghost writer for a party game. 
         Your task: Write 3 short, funny, distinct variations of an answer for the given prompt as if you were a human player trying to blend in.
-        Return ONLY a JSON array of 3 strings: ["ans1", "ans2", "ans3"].
-        Keep answers short (under 15 words) and casual.`;
+        Return ONLY a valid JSON array of 3 strings: ["ans1", "ans2", "ans3"].
+        CRITICAL: Ensure all internal quotes are properly escaped with backslashes.
+        Keep answers short (under 15 words) and casual.
+        Do not use markdown code blocks.`;
 
         const finalSystemPrompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
 
@@ -52,17 +54,21 @@ exports.handler = async function (event, context) {
             };
         }
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+
+        // Append critical formatting instructions (same as client-side)
+        const fullPrompt = `${finalSystemPrompt}\n\nTask: ${prompt}\n\nProvide 3 distinct variations of this persona answering the prompt. Return ONLY a valid JSON array of strings: ["ans1", "ans2", "ans3"]. Ensure all internal quotes are escaped. Do not use markdown code blocks.`;
+
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{
                     role: "user",
-                    parts: [{ text: finalSystemPrompt + "\n\nPrompt: " + prompt }]
+                    parts: [{ text: fullPrompt }]
                 }],
                 generationConfig: {
-                    maxOutputTokens: 200
+                    maxOutputTokens: 1000
                 }
             })
         });

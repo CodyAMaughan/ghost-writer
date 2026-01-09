@@ -118,12 +118,20 @@ export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
 function parseResponse(text) {
     // Clean up markdown if present
     let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    // Try to extract JSON array if there's extra text
+    const arrayMatch = cleanText.match(/\[.*\]/s);
+    if (arrayMatch) {
+        cleanText = arrayMatch[0];
+    }
+
     try {
         const list = JSON.parse(cleanText);
         if (Array.isArray(list)) return list.slice(0, 3);
         return [cleanText, "Error parsing AI", "Try manual entry"];
     } catch (e) {
         console.error("JSON Parse Error", e);
+        console.error("Failed to parse:", cleanText);
         // Attempt fallback split
         return [cleanText, "JSON Parse Error", "Manual Only"];
     }
