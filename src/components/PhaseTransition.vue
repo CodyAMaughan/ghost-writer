@@ -1,5 +1,7 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
+import { usePeer } from '../composables/usePeer';
+import { THEMES } from '../config/themes';
 
 const props = defineProps({
   phaseName: String
@@ -20,33 +22,26 @@ onMounted(() => {
     }, 2000); 
 });
 
+const { gameState } = usePeer();
+const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+
 const getPhaseTitle = (p) => {
-    switch(p) {
-        case 'PROMPT': return 'INCOMING TRANSMISSION';
-        case 'INPUT': return 'ESTABLISHING UPLINK';
-        case 'VOTING': return 'CONSENSUS REQUIRED';
-        case 'REVEAL': return 'DECRYPTING RESULTS';
-        case 'FINISH': return 'MISSION DEBRIEF';
-        default: return 'LOADING...';
-    }
+    return theme.value.copy.transitions[p] || 'LOADING...';
 };
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[90] bg-black flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out"
-       :class="visible ? 'opacity-100' : 'opacity-0 pointer-events-none'">
+  <div class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out"
+       :class="visible ? 'opacity-100' : 'opacity-0'">
       
-      <div class="text-green-500 font-mono text-4xl md:text-6xl font-bold tracking-tighter animate-pulse mb-4">
+      <div class="font-mono text-4xl md:text-6xl font-bold tracking-tighter animate-pulse mb-4 text-center" :class="theme.colors.accent">
           {{ getPhaseTitle(phaseName) }}
       </div>
       
       <div class="w-64 h-2 bg-slate-800 rounded overflow-hidden">
-          <div class="h-full bg-green-500 animate-progress-bar"></div>
+          <div class="h-full animate-progress-bar" :class="theme.colors.button.split(' ')[0]"></div>
       </div>
       
-      <div class="mt-4 text-slate-500 font-mono text-sm uppercase tracking-widest">
-          System State: <span class="text-white">TRANSITIONING</span>
-      </div>
   </div>
 </template>
 

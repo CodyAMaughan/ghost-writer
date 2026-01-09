@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { usePeer } from '../composables/usePeer';
+import { THEMES } from '../config/themes';
 import PhasePrompt from './phases/PhasePrompt.vue';
 import PhaseInput from './phases/PhaseInput.vue';
 import PhaseVoting from './phases/PhaseVoting.vue';
@@ -9,6 +10,7 @@ import PhaseFinish from './phases/PhaseFinish.vue';
 import PhaseTransition from './PhaseTransition.vue';
 
 const { gameState } = usePeer();
+const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
 const activePhase = ref(gameState.phase);
 const showTransition = ref(false);
@@ -48,7 +50,7 @@ const timer = computed(() => gameState.timer);
 </script>
 
 <template>
-  <div class="h-full flex flex-col items-center w-full max-w-4xl mx-auto py-4 relative">
+  <div :class="theme.font" class="h-full flex flex-col items-center w-full max-w-4xl mx-auto py-4 relative">
     
     <!-- TOP BAR -->
     <div class="w-full flex justify-between items-center mb-4 border-b border-slate-700 pb-2">

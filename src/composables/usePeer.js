@@ -1,11 +1,12 @@
 import { ref, reactive } from 'vue';
 import Peer from 'peerjs';
 import { fetchAI } from '../services/ai';
-import { AGENTS } from '../constants/agents';
+import { THEMES } from '../config/themes';
 
 // Singleton State
 const gameState = reactive({
     phase: 'LOBBY',
+    currentTheme: 'viral',
     roomCode: '',
     hostId: '',
     round: 1,
@@ -144,7 +145,8 @@ export function usePeer() {
                 if (msg.payload.agentId === 'custom') {
                     systemPrompt = (msg.payload.systemPrompt || "You are a generic helper.") + " Keep it under 15 words.";
                 } else {
-                    const agentDef = AGENTS.find(a => a.id === msg.payload.agentId);
+                    const theme = THEMES[gameState.currentTheme];
+                    const agentDef = theme ? theme.agents.find(a => a.id === msg.payload.agentId) : null;
                     if (agentDef) systemPrompt = agentDef.systemPrompt;
                 }
 
@@ -212,23 +214,9 @@ export function usePeer() {
     };
 
     const generateNewPrompt = async () => {
-        // Hardcoded prompts for MVP fallback
-        const prompts = [
-            "What is the worst thing to bring to a funeral?",
-            "Explain the internet to a medieval peasant.",
-            "What's a bad tagline for a dating app?",
-            "Describe the smell of failure.",
-            "What is the meaning of life (wrong answers only)?",
-            "A rejected flavor of ice cream.",
-            "The worst excuse for being late to work."
-        ];
+        const theme = THEMES[gameState.currentTheme] || THEMES.viral;
+        const prompts = theme.prompts;
         gameState.prompt = prompts[Math.floor(Math.random() * prompts.length)];
-
-        // If Host has AI, try to generate one?
-        // For speed, let's stick to local or simple generic.
-        // If we want AI prompt:
-        // fetchAI(..., "Generate a funny fill-in-the-blank or open-ended game prompt...", "You are a game host.")
-        // But let's keep it robust with local list for now.
     };
 
     const startGame = () => {
@@ -380,7 +368,8 @@ export function usePeer() {
             if (agentId === 'custom') {
                 sys = (customSystemPrompt || "You are a generic helper.") + " Keep it under 15 words.";
             } else {
-                const agentDef = AGENTS.find(a => a.id === agentId);
+                const theme = THEMES[gameState.currentTheme] || THEMES.viral;
+                const agentDef = theme.agents.find(a => a.id === agentId);
                 sys = agentDef ? agentDef.systemPrompt : "";
             }
             return fetchAI(gameState.settings.provider, gameState.settings.apiKey, gameState.prompt, sys);
@@ -446,6 +435,12 @@ export function usePeer() {
         leaveGame, // Exposed
 
         // Actions
+        setTheme: (themeId) => {
+            if (isHost.value && THEMES[themeId]) {
+                gameState.currentTheme = themeId;
+                broadcastState();
+            }
+        },
         submitAnswer: (text, source, agent) => {
             if (isHost.value) {
                 handleHostData({ type: 'SUBMIT_ANSWER', payload: { text, source, agent } }, myId.value);

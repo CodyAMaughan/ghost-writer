@@ -1,16 +1,24 @@
 <script setup>
+import { computed } from 'vue';
 import { usePeer } from '../../composables/usePeer';
-import { AGENTS } from '../../constants/agents';
+import { THEMES } from '../../config/themes';
 import { User, Zap, UserCircle } from 'lucide-vue-next';
 
 const { gameState, isHost, myId, nextReveal } = usePeer();
+const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+
+const getAgentName = (id) => {
+    if (id === 'autopilot') return 'Autopilot';
+    const agent = theme.value.agents.find(a => a.id === id);
+    return agent ? agent.name : id;
+};
 </script>
 
 <template>
     <div class="w-full flex-grow flex flex-col items-center justify-center">
        <div v-if="gameState.submissions[gameState.revealedIndex]" class="w-full max-w-2xl text-center space-y-8 animate-fade-in-up">
            
-           <div class="relative p-8 md:p-12 bg-slate-800 border-2 border-slate-600 rounded-xl shadow-2xl overflow-hidden">
+           <div class="relative p-8 md:p-12 border-2 rounded-xl shadow-2xl overflow-hidden" :class="[theme.colors.card, theme.colors.border]">
                <!-- Result Ribbon -->
                <div v-if="gameState.submissions[gameState.revealedIndex].authorId !== myId" 
                     class="absolute top-0 right-0 left-0 h-2 bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>
@@ -31,14 +39,14 @@ const { gameState, isHost, myId, nextReveal } = usePeer();
 
                   <!-- 2. Source Truth -->
                   <div>
-                      <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">TRUE SOURCE</p>
+                      <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{{ theme.copy.manualLabel }} / {{ theme.copy.ghostLabel }}</p>
                       <div v-if="gameState.submissions[gameState.revealedIndex].source === 'AI'" class="flex items-center gap-2">
                           <Zap class="w-5 h-5 text-purple-400" />
-                          <p class="text-lg font-bold text-purple-400 glitch-text">AI [{{ AGENTS.find(a => a.id === gameState.submissions[gameState.revealedIndex].agent)?.name || 'BOT' }}]</p>
+                          <p class="text-lg font-bold text-purple-400 glitch-text">{{ theme.copy.ghostLabel }} [{{ getAgentName(gameState.submissions[gameState.revealedIndex].agent) }}]</p>
                       </div>
                       <div v-else class="flex items-center gap-2">
                           <User class="w-5 h-5 text-blue-400" />
-                          <p class="text-lg font-bold text-blue-400">HUMAN</p>
+                          <p class="text-lg font-bold text-blue-400">{{ theme.copy.manualLabel }}</p>
                       </div>
                   </div>
 
@@ -46,8 +54,8 @@ const { gameState, isHost, myId, nextReveal } = usePeer();
                   <div>
                       <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">VOTE ANALYTICS</p>
                       <div class="flex gap-4 text-sm font-mono">
-                          <span class="text-blue-400 font-bold">HUMAN: {{ Object.values(gameState.submissions[gameState.revealedIndex].votes).filter(v => v === 'HUMAN').length }}</span>
-                          <span class="text-purple-400 font-bold">BOT: {{ Object.values(gameState.submissions[gameState.revealedIndex].votes).filter(v => v === 'BOT').length }}</span>
+                          <span class="text-blue-400 font-bold">{{ theme.copy.voteHuman }}: {{ Object.values(gameState.submissions[gameState.revealedIndex].votes).filter(v => v === 'HUMAN').length }}</span>
+                          <span class="text-purple-400 font-bold">{{ theme.copy.voteBot }}: {{ Object.values(gameState.submissions[gameState.revealedIndex].votes).filter(v => v === 'BOT').length }}</span>
                       </div>
                   </div>
               </div>
@@ -75,14 +83,14 @@ const { gameState, isHost, myId, nextReveal } = usePeer();
 
               <!-- SCORING BREAKDOWN FOR ME -->
               <div v-if="gameState.submissions[gameState.revealedIndex].authorId === myId" class="mt-8 bg-green-900/20 p-4 rounded border border-green-500/50">
-                  <span class="text-xs text-green-400 uppercase tracking-widest">MISSION REPORT</span>
+                  <span class="text-xs text-green-400 uppercase tracking-widest">{{ theme.copy.revealHeader }}</span>
                   <div class="flex justify-between items-center mt-2">
                       <div class="text-sm text-slate-300">
                           <span v-if="gameState.submissions[gameState.revealedIndex].source === 'AI'">
-                              STRATEGY: <b class="text-purple-400">GHOST</b>
+                              {{ theme.copy.strategyLabel }}: <b class="text-purple-400">{{ theme.copy.ghostLabel }}</b>
                           </span>
                           <span v-else>
-                              STRATEGY: <b class="text-blue-400">MANUAL</b>
+                              {{ theme.copy.strategyLabel }}: <b class="text-blue-400">{{ theme.copy.manualLabel }}</b>
                           </span>
                       </div>
                       
@@ -113,8 +121,10 @@ const { gameState, isHost, myId, nextReveal } = usePeer();
 
            <!-- Host Control -->
            <div v-if="isHost" class="mt-8">
-               <button @click="nextReveal" data-testid="next-reveal-btn" class="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-8 rounded shadow-lg">
-                   NEXT >
+               <button @click="nextReveal" data-testid="next-reveal-btn" 
+                       :class="theme.colors.button"
+                       class="font-bold py-3 px-8 rounded shadow-lg text-white">
+                   {{ theme.copy.revealNext }}
                </button>
            </div>
        </div>

@@ -1,6 +1,6 @@
 
 export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
-    const fullPrompt = `${systemPrompt}\n\nTask: ${prompt}\n\nProvide 3 distinct variations of this persona answering the prompt. Return ONLY a valid JSON array of strings: ["ans1", "ans2", "ans3"]. Do not use markdown code blocks.`;
+    const fullPrompt = `${systemPrompt}\n\nTask: ${prompt}\n\nProvide 3 distinct variations of this persona answering the prompt. Return ONLY a valid JSON array of strings: ["ans1", "ans2", "ans3"]. Ensure all internal quotes are escaped. Do not use markdown code blocks.`;
 
     try {
         if (provider === 'gemini') {

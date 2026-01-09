@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import GameScreen from '../src/components/GameScreen.vue';
 import { usePeer } from '../src/composables/usePeer';
-import { AGENTS } from '../src/constants/agents';
+import { THEMES } from '../src/config/themes';
 import { reactive, nextTick } from 'vue';
 import Lobby from '../src/components/Lobby.vue';
 
@@ -11,6 +11,7 @@ import Lobby from '../src/components/Lobby.vue';
 // Ensures clean state for every test
 const createDefaultState = () => ({
     phase: 'LOBBY',
+    currentTheme: 'viral',
     players: [],
     round: 1,
     maxRounds: 3,
@@ -198,7 +199,7 @@ describe('GameScreen Integration', () => {
         await nextTick();
 
         expect(mockActions.submitAnswer).toHaveBeenCalledWith("My funny answer", 'HUMAN', null);
-        expect(wrapper.text()).toContain("DATA UPLOADED");
+        expect(wrapper.text()).toContain("POST UPLOADED");
     });
 
     it('Allows user to generate and select a Ghost Answer', async () => {
@@ -207,7 +208,8 @@ describe('GameScreen Integration', () => {
         await wrapper.find('[data-testid="open-ghost-modal-btn"]').trigger('click');
         await nextTick();
 
-        const agentBtn = wrapper.find(`[data-testid="agent-select-btn-${AGENTS[0].id}"]`);
+        const targetAgent = THEMES.viral.agents[0];
+        const agentBtn = wrapper.find(`[data-testid="agent-select-btn-${targetAgent.id}"]`);
         await agentBtn.trigger('click');
 
         // Wait for async options logic
@@ -219,8 +221,8 @@ describe('GameScreen Integration', () => {
 
         await nextTick();
 
-        expect(mockActions.submitAnswer).toHaveBeenCalledWith("Ghost A", 'AI', AGENTS[0].id);
-        expect(wrapper.text()).toContain("DATA UPLOADED");
+        expect(mockActions.submitAnswer).toHaveBeenCalledWith("Ghost A", 'AI', targetAgent.id);
+        expect(wrapper.text()).toContain("POST UPLOADED");
     });
 
     it('Handles Custom Agent generation', async () => {
@@ -249,6 +251,46 @@ describe('GameScreen Integration', () => {
         expect(mockActions.submitAnswer).toHaveBeenCalledWith("Ghost A", 'AI', 'custom');
     });
 
+    it('Auto-submits Ghost answer when timer hits 0', async () => {
+        // 1. Mount component
+        const wrapper = mount(GameScreen, { global: { stubs } });
+
+        // 2. Simulate timer hitting 0 
+        // (The component should be watching gameState.timer)
+        mockGameState.timer = 0;
+        await nextTick();
+
+        // 3. Expect an AI submission happened automatically
+        // We expect random text, source='AI', and a random agent ID
+        expect(mockActions.submitAnswer).toHaveBeenCalledWith(
+            expect.any(String),
+            'AI',
+            expect.anything()
+        );
+    });
+
+    it('Updates UI styling and text based on Theme Settings', async () => {
+        // 1. Test "Academia" Theme
+        mockGameState.currentTheme = 'academia';
+        const wrapper = mount(GameScreen, { global: { stubs } });
+        await nextTick();
+
+        // Check for Serif font and distinct theme subtext ("Automated Séance")
+        // "Consult the Spirit" was removed in favor of generic "Use Ghost Writer"
+        expect(wrapper.text()).toContain("Automated Séance");
+        // Check if a known academia class exists (e.g., bg-stone-900 or font-serif)
+        // Note: You might need to inspect the specific button or container
+        expect(wrapper.html()).toContain('font-serif');
+
+        // 2. Switch to "Viral" Theme
+        mockGameState.currentTheme = 'viral';
+        await nextTick();
+
+        // Check for Sans font and "Auto-Generate" text
+        expect(wrapper.text()).toContain("Auto-Generate");
+        expect(wrapper.html()).toContain('font-sans');
+    });
+
     it('Handles AI Failure gracefully', async () => {
         // Setup: Mock failure
         mockActions.getGhostOptions.mockRejectedValueOnce(new Error("Network Error"));
@@ -259,7 +301,8 @@ describe('GameScreen Integration', () => {
         await wrapper.find('[data-testid="open-ghost-modal-btn"]').trigger('click');
         await nextTick();
 
-        const agentBtn = wrapper.find(`[data-testid="agent-select-btn-${AGENTS[0].id}"]`);
+        const targetAgent = THEMES.viral.agents[0];
+        const agentBtn = wrapper.find(`[data-testid="agent-select-btn-${targetAgent.id}"]`);
         await agentBtn.trigger('click');
 
         await flushPromises();
