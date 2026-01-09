@@ -5,12 +5,16 @@ import Lobby from './components/Lobby.vue';
 import GameScreen from './components/GameScreen.vue';
 import RulesModal from './components/RulesModal.vue';
 import CustomAgentEditor from './components/CustomAgentEditor.vue';
-import { HelpCircle, UserCog, Share2 } from 'lucide-vue-next';
+import SettingsModal from './components/SettingsModal.vue';
+import { HelpCircle, UserCog, Share2, Settings } from 'lucide-vue-next';
 import { THEMES } from './config/themes';
+import { useAudio } from './composables/useAudio';
 
 const { gameState } = usePeer();
+const { init: initAudio } = useAudio();
 const showRules = ref(false);
 const showCustom = ref(false);
+const showSettings = ref(false);
 
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
@@ -71,6 +75,7 @@ const handleVisibilityChange = () => {
 };
 
 onMounted(() => {
+    initAudio();
     requestWakeLock();
     document.addEventListener('visibilitychange', handleVisibilityChange);
 });
@@ -118,6 +123,9 @@ onMounted(() => {
                  <button @click="showCustom = true" class="text-slate-500 hover:text-purple-400 transition-colors" title="Edit Custom Personality">
                      <UserCog class="w-6 h-6" />
                  </button>
+                 <button @click="showSettings = true" class="text-slate-500 hover:text-blue-400 transition-colors" title="Settings">
+                     <Settings class="w-6 h-6" />
+                 </button>
                  <button @click="showRules = true" class="text-slate-500 hover:text-yellow-400 transition-colors" title="Game Rules">
                      <HelpCircle class="w-6 h-6" />
                  </button>
@@ -132,6 +140,7 @@ onMounted(() => {
       </main>
       
       <RulesModal :isOpen="showRules" @close="showRules = false" />
+      <SettingsModal :isOpen="showSettings" @close="showSettings = false" />
       <CustomAgentEditor :isOpen="showCustom" mode="EDIT" @close="showCustom = false" />
 
       <footer class="mt-8 text-center text-xs text-slate-500">

@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { usePeer } from '../../composables/usePeer';
+import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
 import { UserCircle, CheckCircle, XCircle, MinusCircle } from 'lucide-vue-next';
 import AvatarIcon from '../AvatarIcon.vue';
@@ -56,6 +57,15 @@ const getAvatarColor = () => {
     // Return just the text-color part for the name, but border passed to icon
     return av.color; 
 };
+
+// AUDIO TRIGGERS
+const { playSfx } = useAudio();
+watch(step, (val) => {
+    if (val === 1) playSfx('REVEAL_STEP');
+    if (val === 2) playSfx('STAMP');
+    if (val === 3) playSfx('REVEAL_STEP');
+    if (val === 4) playSfx('REVEAL_STEP');
+});
 
 const advanceStep = () => {
     nextRevealStep();

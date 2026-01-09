@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { usePeer } from '../composables/usePeer';
+import { useAudio } from '../composables/useAudio';
 import { THEMES } from '../config/themes';
 import PhasePrompt from './phases/PhasePrompt.vue';
 import PhaseInput from './phases/PhaseInput.vue';
@@ -46,6 +47,29 @@ watch(showTransition, (val) => {
 
 const currentRound = computed(() => gameState.round);
 const timer = computed(() => gameState.timer);
+
+// AUDIO LOGIC
+const { playSfx, playMusic } = useAudio();
+const playThemeMusic = () => {
+    const key = 'BGM_' + (gameState.currentTheme || 'viral').toUpperCase();
+    playMusic(key);
+};
+
+onMounted(() => {
+    playThemeMusic();
+});
+
+watch(() => gameState.currentTheme, () => {
+    playThemeMusic();
+});
+
+watch(timer, (val) => {
+    if (activePhase.value === 'INPUT' && val > 0 && val <= 30) { 
+        // Only tick in last 30s? Or all time? User said "time is running short".
+        if (val <= 10) playSfx('TIMER_URGENT');
+        else playSfx('TIMER_TICK');
+    }
+});
 
 </script>
 

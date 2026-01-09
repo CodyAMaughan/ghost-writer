@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { usePeer } from '../composables/usePeer';
+import { useAudio } from '../composables/useAudio';
 import { User, Server, Key, LogIn, Users, Play, Ban } from 'lucide-vue-next';
 import AvatarIcon from './AvatarIcon.vue';
 import { AVATARS } from '../config/avatars';
@@ -17,6 +18,12 @@ const form = ref({
   name: '',
   code: '',
   provider: 'official-server'
+});
+
+// AUDIO
+const { playMusic, playSfx } = useAudio();
+onMounted(() => {
+    playMusic('BGM_LOBBY');
 });
 
 const aiMode = ref('server'); // 'server' or 'custom'
