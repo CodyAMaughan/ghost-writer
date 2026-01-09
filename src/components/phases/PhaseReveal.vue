@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { THEMES } from '../../config/themes';
 import { UserCircle, CheckCircle, XCircle, MinusCircle } from 'lucide-vue-next';
+import AvatarIcon from '../AvatarIcon.vue';
+import { AVATARS } from '../../config/avatars';
 
 const { gameState, isHost, myId, nextRevealStep } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
@@ -43,6 +45,18 @@ const authorName = computed(() => {
     return gameState.players.find(p => p.id === currentSubmission.value.authorId)?.name || 'Unknown';
 });
 
+const getAvatarId = () => {
+    if (!currentSubmission.value) return 0;
+    return gameState.players.find(p => p.id === currentSubmission.value.authorId)?.avatarId || 0;
+};
+
+const getAvatarColor = () => {
+    const id = getAvatarId();
+    const av = AVATARS.find(a => a.id === id) || AVATARS[0];
+    // Return just the text-color part for the name, but border passed to icon
+    return av.color; 
+};
+
 const advanceStep = () => {
     nextRevealStep();
 };
@@ -66,16 +80,17 @@ const verdict = computed(() => {
                <!-- TOP 2/3: Author, Quote, Votes, Verdict -->
                <div class="relative flex-[2] border-b border-white/10 p-8 flex flex-col gap-6 items-center text-center">
                    
-                   <!-- Row 1: Author (Visible Step 0) -->
-                    <div class="w-full flex items-center justify-center gap-3 animate-fade-in-down">
-                        <UserCircle class="w-8 h-8 text-slate-400" />
-                        <div class="text-left">
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest leading-none">AUTHOR</p>
-                            <p class="text-xl font-bold text-white leading-none">
-                                {{ authorName }}
-                            </p>
-                        </div>
-                    </div>
+                    <!-- Row 1: Author (Visible Step 0) -->
+                     <div class="w-full flex items-center justify-center gap-4 animate-fade-in-down">
+                         <!-- Large Avatar -->
+                         <AvatarIcon :avatarId="getAvatarId()" size="w-[60px] h-[60px]" :showBorder="true" />
+                         <div class="text-left">
+                             <p class="text-[10px] text-slate-500 uppercase tracking-widest leading-none mb-1">AUTHOR</p>
+                             <p class="text-2xl font-black leading-none" :class="getAvatarColor()">
+                                 {{ authorName }}
+                             </p>
+                         </div>
+                     </div>
 
                     <!-- Row 2: Quote (Visible Step 0) -->
                     <div class="flex-grow flex items-center justify-center w-full">

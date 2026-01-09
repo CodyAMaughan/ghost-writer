@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { THEMES } from '../../config/themes';
 import { User, Zap, Lock, CheckCircle, UserCircle } from 'lucide-vue-next';
+import AvatarIcon from '../AvatarIcon.vue';
+import { AVATARS } from '../../config/avatars';
 
 const { gameState, isHost, myId, submitVote, lockVotes: lockVotesAction } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
@@ -22,6 +24,16 @@ const lockVotes = () => {
     });
     usePeer().lockVotes(); 
     votesLocked.value = true;
+};
+
+const getAvatarId = (playerId) => {
+    return gameState.players.find(p => p.id === playerId)?.avatarId || 0;
+};
+
+const getAvatarColor = (playerId) => {
+    const id = getAvatarId(playerId);
+    const av = AVATARS.find(a => a.id === id) || AVATARS[0];
+    return av.color; // Contains text-color class
 };
 </script>
 
@@ -44,8 +56,8 @@ const lockVotes = () => {
              <!-- Player Identity & Text -->
              <div class="flex-grow flex flex-col items-center md:items-start text-center md:text-left">
                 <div class="flex items-center gap-2 text-slate-500 mb-2">
-                    <UserCircle class="w-4 h-4" />
-                    <span class="font-bold text-sm tracking-wider uppercase">
+                    <AvatarIcon :avatarId="getAvatarId(sub.authorId)" size="w-8 h-8" :showBorder="true" />
+                    <span class="font-bold text-sm tracking-wider uppercase" :class="getAvatarColor(sub.authorId)">
                         {{ gameState.players.find(p => p.id === sub.authorId)?.name || 'Unknown' }}
                     </span>
                     <span v-if="sub.authorId === myId" class="text-[10px] bg-slate-700 px-2 rounded-full text-white">YOU</span>

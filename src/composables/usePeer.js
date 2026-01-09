@@ -39,6 +39,27 @@ let pendingGhostResolve = null;
 export function usePeer() {
 
     // --- HOST LOGIC ---
+
+    const getUniqueAvatarId = () => {
+        const used = gameState.players.map(p => p.avatarId);
+        const all = Array.from({ length: 12 }, (_, i) => i);
+        const available = all.filter(id => !used.includes(id));
+        if (available.length === 0) return Math.floor(Math.random() * 12);
+        return available[Math.floor(Math.random() * available.length)];
+    };
+
+    const setPlayerAvatar = (playerId, avatarId) => {
+        const p = gameState.players.find(p => p.id === playerId);
+        if (p) {
+            const others = gameState.players.filter(x => x.id !== playerId);
+            // Allow duplicates if user specifically chooses one? Or strict "no duplicates"?
+            // User said: "you can click on your icon and change it to an available icon (no duplicates)"
+            if (others.some(o => o.avatarId === avatarId)) return; // Taken/Ignore
+            p.avatarId = avatarId;
+            broadcastState();
+        }
+    };
+
     const initHost = (name, provider, apiKey) => {
         isHost.value = true;
         myName.value = name;
@@ -141,6 +162,10 @@ export function usePeer() {
                     submission.votes[senderId] = msg.payload.guess;
                 }
                 broadcastState();
+                broadcastState();
+                break;
+            case 'UPDATE_AVATAR':
+                setPlayerAvatar(senderId, msg.payload.avatarId);
                 break;
             case 'REQUEST_GHOST':
                 // Host acts as proxy
@@ -207,7 +232,8 @@ export function usePeer() {
 
     const addPlayer = (id, name, isHostPlayer) => {
         if (gameState.players.find(p => p.id === id)) return;
-        gameState.players.push({ id, name, score: 0, isHost: isHostPlayer });
+        const avatarId = getUniqueAvatarId();
+        gameState.players.push({ id, name, score: 0, isHost: isHostPlayer, avatarId });
         broadcastState();
     };
 
@@ -485,6 +511,13 @@ export function usePeer() {
             if (isHost.value && THEMES[themeId]) {
                 gameState.currentTheme = themeId;
                 broadcastState();
+            }
+        },
+        updateAvatar: (avatarId) => {
+            if (isHost.value) {
+                setPlayerAvatar(myId.value, avatarId);
+            } else {
+                hostConn && hostConn.send({ type: 'UPDATE_AVATAR', payload: { id: myId.value, avatarId } });
             }
         },
         submitAnswer: (text, source, agent) => {

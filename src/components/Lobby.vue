@@ -1,13 +1,15 @@
 <script setup>
 import { ref } from 'vue';
 import { usePeer } from '../composables/usePeer';
-import { User, Server, Key, LogIn, Users, Play } from 'lucide-vue-next';
+import { User, Server, Key, LogIn, Users, Play, Ban } from 'lucide-vue-next';
+import AvatarIcon from './AvatarIcon.vue';
+import { AVATARS } from '../config/avatars';
 
 import { THEMES } from '../config/themes';
 import { computed } from 'vue';
 import ApiKeyHelpModal from './ApiKeyHelpModal.vue';
 
-const { initHost, joinGame, gameState, myId, myName, startGame, isHost, leaveGame, setTheme } = usePeer();
+const { initHost, joinGame, gameState, myId, myName, startGame, isHost, leaveGame, setTheme, updateAvatar } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
 const mode = ref('LANDING'); // LANDING, HOSTING, JOINING, WAITING
@@ -104,6 +106,17 @@ const copyCode = () => {
   navigator.clipboard.writeText(gameState.roomCode);
   alert("Code Copied!");
 }
+
+const showAvatarPicker = ref(false);
+
+const selectAvatar = (id) => {
+    updateAvatar(id);
+    showAvatarPicker.value = false;
+};
+
+const isTaken = (id) => {
+    return gameState.players.some(p => p.avatarId === id && p.id !== myId.value);
+};
 </script>
 
 <template>
@@ -248,11 +261,17 @@ const copyCode = () => {
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div v-for="player in gameState.players" :key="player.id" 
-               class="bg-slate-800/80 p-4 rounded flex flex-col items-center justify-center border border-slate-700 relative overflow-hidden">
-             <div v-if="player.id === myId" class="absolute top-1 right-2 text-[10px] text-yellow-400">YOU</div>
-             <div v-if="player.isHost" class="absolute top-1 left-2 text-[10px]" :class="theme.colors.accent">HOST</div>
-             <User class="w-8 h-8 opacity-50 mb-2" :class="theme.colors.text" />
-             <span class="font-bold truncate w-full text-center" :class="theme.colors.text">{{ player.name }}</span>
+               class="bg-slate-800/80 p-4 rounded flex flex-col items-center justify-center border border-slate-700 relative overflow-hidden group">
+             <div v-if="player.id === myId" class="absolute top-1 right-2 text-[10px] text-yellow-400 font-bold z-10">YOU</div>
+             <div v-if="player.isHost" class="absolute top-1 left-2 text-[10px] font-bold z-10" :class="theme.colors.accent">HOST</div>
+             
+             <!-- Avatar -->
+             <div @click="player.id === myId ? showAvatarPicker = true : null" 
+                  :class="player.id === myId ? 'cursor-pointer transition-transform hover:scale-110 active:scale-95' : ''">
+                  <AvatarIcon :avatarId="player.avatarId" size="w-20 h-20" :showBorder="true" />
+             </div>
+
+             <span class="font-bold truncate w-full text-center mt-3" :class="theme.colors.text">{{ player.name }}</span>
           </div>
           <!-- Slots -->
           <div v-for="i in (8 - gameState.players.length)" :key="i" class="bg-slate-900/30 border border-slate-800 border-dashed rounded p-4 flex items-center justify-center text-slate-700">
@@ -305,5 +324,25 @@ const copyCode = () => {
     </div>
 
     <ApiKeyHelpModal :isOpen="showKeyHelp" @close="showKeyHelp = false" />
+    
+    <!-- AVATAR PICKER MODAL -->
+    <div v-if="showAvatarPicker" class="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4">
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-600 max-w-lg w-full shadow-2xl animate-fade-in-up">
+            <h3 class="text-white font-bold text-xl mb-6 text-center tracking-widest uppercase">Select Identity</h3>
+            <div class="grid grid-cols-4 gap-4 justify-items-center">
+                 <button v-for="av in AVATARS" :key="av.id" 
+                         @click="selectAvatar(av.id)" 
+                         :disabled="isTaken(av.id)"
+                         class="relative group transition-all disabled:opacity-30 disabled:cursor-not-allowed transform hover:scale-110 active:scale-95">
+                     <AvatarIcon :avatarId="av.id" size="w-16 h-16" />
+                     <div v-if="isTaken(av.id)" class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                         <Ban class="text-red-500 w-8 h-8" />
+                     </div>
+                 </button>
+            </div>
+            <button @click="showAvatarPicker = false" class="mt-8 w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded font-bold uppercase tracking-widest">CANCEL</button>
+        </div>
+    </div>
+
   </div>
 </template>
