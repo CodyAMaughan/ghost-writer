@@ -27,6 +27,25 @@ export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
             const text = data.candidates[0].content.parts[0].text;
             return parseResponse(text);
 
+        } else if (provider === 'official-server') {
+            // Netlify Proxy Call
+            const response = await fetch('/.netlify/functions/proxy-ai', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    systemPrompt: systemPrompt
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || `Server Error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return parseResponse(data.result);
+
         } else if (provider === 'openai') {
             const url = 'https://api.openai.com/v1/chat/completions';
             const response = await fetch(url, {
@@ -36,18 +55,22 @@ export async function fetchAI(provider, apiKey, prompt, systemPrompt) {
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: "gpt-5-mini", // Using a likely available model
+                    model: "gpt-5-mini",
+                    reasoning_effort: "minimal",
+                    max_completion_tokens: 500, // Includes reasoning + output
                     messages: [
                         { role: "system", content: "You are a creative writing assistant." },
                         { role: "user", content: fullPrompt }
-                    ],
-                    temperature: 0.9
+                    ]
                 })
             });
 
             if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("OpenAI Error Details:", errorData);
                 if (response.status === 429) throw new Error("OpenAI Quota Exceeded");
-                throw new Error(`OpenAI Error: ${response.statusText}`);
+                const errorMsg = errorData.error?.message || response.statusText;
+                throw new Error(`OpenAI Error: ${errorMsg}`);
             }
 
             const data = await response.json();

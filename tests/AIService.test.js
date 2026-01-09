@@ -57,4 +57,20 @@ describe('AI Service', () => {
         await fetchAI('gemini', 'gem-key', 'Prompt', 'Sys');
         expect(fetch).toHaveBeenCalledWith(expect.stringContaining('generativelanguage.googleapis.com'), expect.anything());
     });
+
+    it('should call Netlify Proxy for official-server', async () => {
+        const mockResponse = { result: JSON.stringify(["S1", "S2"]) };
+        fetch.mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve(mockResponse)
+        });
+
+        const result = await fetchAI('official-server', 'SECRET-CODE', 'Prompt', 'Sys');
+
+        expect(fetch).toHaveBeenCalledWith('/.netlify/functions/proxy-ai', expect.objectContaining({
+            method: 'POST',
+            body: expect.stringContaining('"accessCode":"SECRET-CODE"')
+        }));
+        expect(result).toEqual(["S1", "S2"]);
+    });
 });

@@ -122,6 +122,13 @@ describe('Lobby Integration', () => {
         await wrapper.find('[data-testid="landing-host-btn"]').trigger('click');
 
         await wrapper.find('[data-testid="host-name-input"]').setValue('HostUser');
+
+        // Click "Bring Your Own Key" to reveal provider options
+        const buttons = wrapper.findAll('button');
+        const bringOwnKeyBtn = buttons.find(btn => btn.text().includes('Bring Your Own Key'));
+        await bringOwnKeyBtn.trigger('click');
+        await nextTick();
+
         await wrapper.find('[data-testid="host-api-input"]').setValue('sk-fake-key');
 
         await wrapper.find('[data-testid="host-init-btn"]').trigger('click');
@@ -156,6 +163,13 @@ describe('Lobby Integration', () => {
         // Easier: Trigger the UI flow to get to WAITING mode.
         await wrapper.find('[data-testid="landing-host-btn"]').trigger('click');
         await wrapper.find('[data-testid="host-name-input"]').setValue('Host');
+
+        // Click "Bring Your Own Key" to reveal provider options
+        const buttons = wrapper.findAll('button');
+        const bringOwnKeyBtn = buttons.find(btn => btn.text().includes('Bring Your Own Key'));
+        await bringOwnKeyBtn.trigger('click');
+        await nextTick();
+
         await wrapper.find('[data-testid="host-api-input"]').setValue('sk-key');
         await wrapper.find('[data-testid="host-init-btn"]').trigger('click');
 

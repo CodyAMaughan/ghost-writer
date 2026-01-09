@@ -14,15 +14,27 @@ const mode = ref('LANDING'); // LANDING, HOSTING, JOINING, WAITING
 const form = ref({
   name: '',
   code: '',
-  provider: 'gemini'
+  provider: 'official-server'
 });
+
+const aiMode = ref('server'); // 'server' or 'custom'
+
+const selectAiMode = (mode) => {
+  aiMode.value = mode;
+  if (mode === 'server') {
+    form.value.provider = 'official-server';
+  } else {
+    form.value.provider = 'gemini'; // Default to gemini when switching to custom
+  }
+};
 
 const showKeyHelp = ref(false);
 
 const apiKeys = ref({
     gemini: '',
     openai: '',
-    anthropic: ''
+    anthropic: '',
+    accessCode: ''
 });
 
 const rememberKeys = ref(false);
@@ -39,6 +51,7 @@ const loadKeys = () => {
     apiKeys.value.gemini = storage.getItem('gw_api_key_gemini') || '';
     apiKeys.value.openai = storage.getItem('gw_api_key_openai') || '';
     apiKeys.value.anthropic = storage.getItem('gw_api_key_anthropic') || '';
+    apiKeys.value.accessCode = storage.getItem('gw_access_code') || '';
 };
 loadKeys();
 
@@ -47,9 +60,11 @@ const saveKeys = () => {
     localStorage.removeItem('gw_api_key_gemini');
     localStorage.removeItem('gw_api_key_openai');
     localStorage.removeItem('gw_api_key_anthropic');
+    localStorage.removeItem('gw_access_code');
     sessionStorage.removeItem('gw_api_key_gemini');
     sessionStorage.removeItem('gw_api_key_openai');
     sessionStorage.removeItem('gw_api_key_anthropic');
+    sessionStorage.removeItem('gw_access_code');
 
     const storage = rememberKeys.value ? localStorage : sessionStorage;
     if (rememberKeys.value) localStorage.setItem('gw_remember_keys', 'true');
@@ -58,11 +73,14 @@ const saveKeys = () => {
     if(apiKeys.value.gemini) storage.setItem('gw_api_key_gemini', apiKeys.value.gemini);
     if(apiKeys.value.openai) storage.setItem('gw_api_key_openai', apiKeys.value.openai);
     if(apiKeys.value.anthropic) storage.setItem('gw_api_key_anthropic', apiKeys.value.anthropic);
+    if(apiKeys.value.accessCode) storage.setItem('gw_access_code', apiKeys.value.accessCode);
 };
 
 const handleHost = () => {
-  const key = apiKeys.value[form.value.provider];
-  if(!form.value.name || !key) return alert("Name & API Key required");
+  const key = aiMode.value === 'server' ? 'server-mode' : apiKeys.value[form.value.provider];
+  
+  if(!form.value.name) return alert("Name required");
+  if(aiMode.value === 'custom' && !key) return alert("API Key required");
   
   saveKeys();
   initHost(form.value.name, form.value.provider, key);
@@ -130,22 +148,42 @@ const copyCode = () => {
         </div>
         <div>
           <label class="block text-xs uppercase text-slate-500 mb-1">AI Provider</label>
-          <div class="grid grid-cols-3 gap-2">
-            <button @click="form.provider = 'gemini'" :class="[form.provider === 'gemini' ? `bg-blue-500/20 border-blue-500 text-blue-400` : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-16">
-                <span class="font-bold">Gemini</span>
-                <span class="text-[9px] opacity-70">Free / Cheap<br>($0.10/M)</span>
+          <div class="grid grid-cols-2 gap-3">
+            <button @click="selectAiMode('server')" :class="[aiMode === 'server' ? `bg-purple-500/20 border-purple-500 text-purple-400` : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-3 border rounded transition-colors text-center text-sm flex flex-col justify-center items-center h-20">
+                <span class="font-bold">Ghost Server</span>
+                <span class="text-[10px] opacity-70">Use our AI (access code)</span>
             </button>
-            <button @click="form.provider = 'openai'" :class="[form.provider === 'openai' ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-16">
-                <span class="font-bold">OpenAI</span>
-                <span class="text-[9px] opacity-70">Credit Needed<br>($0.25/M)</span>
-            </button>
-             <button @click="form.provider = 'anthropic'" :class="[form.provider === 'anthropic' ? 'bg-amber-500/20 border-amber-500 text-amber-400' : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-16">
-                <span class="font-bold">Anthropic</span>
-                <span class="text-[9px] opacity-70">Credit Needed<br>($1.00/M)</span>
+            <button @click="selectAiMode('custom')" :class="[aiMode === 'custom' ? `bg-blue-500/20 border-blue-500 text-blue-400` : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-3 border rounded transition-colors text-center text-sm flex flex-col justify-center items-center h-20">
+                <span class="font-bold">Bring Your Own Key</span>
+                <span class="text-[10px] opacity-70">Use your own AI credits</span>
             </button>
           </div>
         </div>
-        <div>
+        
+        <!-- Provider Selection (Only show if custom mode) -->
+        <div v-if="aiMode === 'custom'">
+          <label class="block text-xs uppercase text-slate-500 mb-1">Choose Provider</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button @click="form.provider = 'gemini'" :class="[form.provider === 'gemini' ? `bg-blue-500/20 border-blue-500 text-blue-400` : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-14">
+                <span class="font-bold">Gemini</span>
+                <span class="text-[9px] opacity-70">Free</span>
+            </button>
+            <button @click="form.provider = 'openai'" :class="[form.provider === 'openai' ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-14">
+                <span class="font-bold">OpenAI</span>
+                <span class="text-[9px] opacity-70">Paid</span>
+            </button>
+             <button @click="form.provider = 'anthropic'" :class="[form.provider === 'anthropic' ? 'bg-amber-500/20 border-amber-500 text-amber-400' : 'bg-slate-900 border-slate-700 text-slate-500']" class="p-2 border rounded transition-colors text-center text-xs flex flex-col justify-center items-center h-14">
+                <span class="font-bold">Anthropic</span>
+                <span class="text-[9px] opacity-70">Paid</span>
+            </button>
+          </div>
+        </div>
+        <div v-if="aiMode === 'server'">
+           <p class="text-sm text-slate-400 text-center py-4">
+               Using our AI server - no API key needed! 🎉
+           </p>
+        </div>
+        <div v-if="aiMode === 'custom'">
           <label class="block text-xs uppercase text-slate-500 mb-1">API Access Key ({{ form.provider.toUpperCase() }})</label>
           <div class="relative">
             <input v-model="apiKeys[form.provider]" type="password" data-testid="host-api-input" class="w-full bg-slate-900 border border-slate-700 p-3 rounded focus:outline-none focus:border-opacity-100 text-white placeholder-slate-600" :class="`focus:${theme.colors.border}`" placeholder="sk-..." />
