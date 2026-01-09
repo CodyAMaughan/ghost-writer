@@ -21,7 +21,8 @@ const gameState = reactive({
         provider: 'gemini',
         apiKey: '',
         roundDuration: 45
-    }
+    },
+    usedPrompts: [] // Track used prompts to prevent duplicates
 });
 
 const myId = ref('');
@@ -216,12 +217,26 @@ export function usePeer() {
     const generateNewPrompt = async () => {
         const theme = THEMES[gameState.currentTheme] || THEMES.viral;
         const prompts = theme.prompts;
-        gameState.prompt = prompts[Math.floor(Math.random() * prompts.length)];
+
+        // Filter out already used prompts
+        const availablePrompts = prompts.filter(p => !gameState.usedPrompts.includes(p));
+
+        // If all prompts have been used, reset the used list
+        if (availablePrompts.length === 0) {
+            gameState.usedPrompts = [];
+            gameState.prompt = prompts[Math.floor(Math.random() * prompts.length)];
+        } else {
+            gameState.prompt = availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
+        }
+
+        // Track this prompt as used
+        gameState.usedPrompts.push(gameState.prompt);
     };
 
     const startGame = () => {
         gameState.players.forEach(p => p.score = 0);
         gameState.round = 1;
+        gameState.usedPrompts = []; // Reset used prompts for new game
         startRound();
     };
 

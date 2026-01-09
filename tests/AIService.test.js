@@ -69,7 +69,7 @@ describe('AI Service', () => {
 
         expect(fetch).toHaveBeenCalledWith('/.netlify/functions/proxy-ai', expect.objectContaining({
             method: 'POST',
-            body: expect.stringContaining('"accessCode":"SECRET-CODE"')
+            body: expect.stringContaining('"systemPrompt":"Sys"')
         }));
         expect(result).toEqual(["S1", "S2"]);
     });

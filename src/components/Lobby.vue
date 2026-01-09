@@ -238,7 +238,7 @@ const copyCode = () => {
           <div class="text-center md:text-left">
              <h2 class="text-3xl font-bold text-white tracking-widest">Lobby</h2>
              <p v-if="isHost" class="text-sm mt-1" :class="theme.colors.accent">YOU ARE HOST</p>
-             <p v-else class="text-slate-400 text-sm mt-1">WAITING FOR HOST...</p>
+             <p v-else class="text-slate-400 text-sm mt-1">{{ theme.copy.waitingForHost }}</p>
           </div>
           <div @click="copyCode" class="cursor-pointer bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded border border-slate-600 flex flex-col items-center group">
             <span class="text-xs text-slate-500 group-hover:text-slate-300">ACCESS CODE</span>
@@ -256,7 +256,7 @@ const copyCode = () => {
           </div>
           <!-- Slots -->
           <div v-for="i in (8 - gameState.players.length)" :key="i" class="bg-slate-900/30 border border-slate-800 border-dashed rounded p-4 flex items-center justify-center text-slate-700">
-             WAITING...
+             {{ theme.copy.waitingForHost }}
           </div>
         </div>
 

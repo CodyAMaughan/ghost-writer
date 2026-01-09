@@ -93,7 +93,7 @@ const lockVotes = () => {
        </div>
        <div v-else class="fixed bottom-8 right-8 text-right bg-slate-900/95 p-6 rounded-xl border border-slate-600 shadow-2xl animate-pulse flex flex-col items-end gap-2 z-50">
            <span class="text-green-500 font-bold tracking-widest uppercase flex items-center gap-2"><CheckCircle class="w-4 h-4" /> Vote Transmitted</span>
-           <span class="text-xs text-slate-400">WAITING FOR OTHER PLAYERS [{{ gameState.finishedVotingIDs?.length || 0 }}/{{ gameState.players.length }}]</span>
+           <span class="text-xs text-slate-400">{{ theme.copy.waitingForPlayers }} [{{ gameState.finishedVotingIDs?.length || 0 }}/{{ gameState.players.length }}]</span>
        </div>
     </div>
 </template>

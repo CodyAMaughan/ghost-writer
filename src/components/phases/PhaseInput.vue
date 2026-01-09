@@ -17,6 +17,7 @@ const activeAgent = ref(null);
 const ghostOptions = ref([]);
 const isLoadingGhost = ref(false);
 const hasSubmitted = ref(false);
+const ghostGenerationFailed = ref(false);
 
 // Watch Timer for Auto-Submit
 watch(() => gameState.timer, (newVal) => {
@@ -57,10 +58,12 @@ const selectAgent = async (agent) => {
     activeAgent.value = agent;
     isLoadingGhost.value = true;
     ghostOptions.value = [];
+    ghostGenerationFailed.value = false;
     try {
         const options = await getGhostOptions(agent.id);
         ghostOptions.value = options;
     } catch (e) {
+        ghostGenerationFailed.value = true;
         alert("Ghost Uplink Failed");
     } finally {
         isLoadingGhost.value = false;
@@ -73,11 +76,13 @@ const handleCustomGenerate = async (customData) => {
     
     isLoadingGhost.value = true;
     ghostOptions.value = [];
+    ghostGenerationFailed.value = false;
     
     try {
         const options = await getGhostOptions('custom', customData.systemPrompt);
         ghostOptions.value = options;
     } catch(e) {
+        ghostGenerationFailed.value = true;
         alert("Ghost Uplink Failed");
     } finally {
         isLoadingGhost.value = false;
@@ -140,7 +145,8 @@ const submitGhost = (text) => {
        <!-- GHOST MODAL -->
        <div v-if="isGhostModalOpen" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
           <div class="bg-slate-900 border-2 border-purple-500 w-full max-w-3xl rounded-xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-             <button @click="isGhostModalOpen = false" class="absolute top-4 right-4 text-slate-500 hover:text-white">ESC</button>
+             <!-- Only show ESC if not loading and no options generated, OR if generation failed -->
+             <button v-if="(!isLoadingGhost && (!ghostOptions || ghostOptions.length === 0)) || ghostGenerationFailed" @click="isGhostModalOpen = false" class="absolute top-4 right-4 text-slate-500 hover:text-white">ESC</button>
              
              <h2 class="text-2xl text-purple-400 font-bold mb-6 flex items-center gap-2"><Ghost /> SELECT GHOST WRITER</h2>
 
@@ -163,16 +169,17 @@ const submitGhost = (text) => {
 
              <div v-else class="space-y-6">
                 <div class="flex items-center gap-4 border-b border-slate-700 pb-4">
-                   <button @click="activeAgent = null" class="text-xs text-slate-500 hover:text-white">&larr; BACK</button>
+                   <!-- Only allow back if not loading and no options, OR if failed -->
+                   <button v-if="(!isLoadingGhost && (!ghostOptions || ghostOptions.length === 0)) || ghostGenerationFailed" @click="activeAgent = null" class="text-xs text-slate-500 hover:text-white">{{ theme.copy.backButton }}</button>
                    <span class="text-purple-400 font-bold">{{ activeAgent.name }}</span>
                 </div>
 
                 <div v-if="isLoadingGhost" class="py-12 text-center text-purple-400 animate-pulse text-xl">
-                   GENERATING...
+                   {{ theme.copy.generating }}
                 </div>
 
                 <div v-else class="grid gap-3">
-                   <p class="text-xs text-slate-500 mb-2">SELECT ONE OUTPUT:</p>
+                   <p class="text-xs text-slate-500 mb-2">{{ theme.copy.selectOutput }}</p>
                    <button v-for="(opt, idx) in ghostOptions" :key="idx" 
                            @click="submitGhost(opt)"
                            :data-testid="'ghost-option-btn-' + idx"
