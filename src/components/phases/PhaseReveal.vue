@@ -101,7 +101,7 @@ const verdict = computed(() => {
 
                     <!-- Row 3: Votes (Visible Step 1) -->
                    <transition name="fade-slide">
-                       <div v-if="step >= 1" class="w-full">
+                       <div v-if="step >= 1" class="w-full relative py-4">
                            <div class="flex justify-between text-xs uppercase font-bold mb-2">
                                <span class="text-blue-400">{{ theme.copy.voteHuman }} ({{ stats.human }})</span>
                                <span class="text-purple-400">{{ theme.copy.voteBot }} ({{ stats.bot }})</span>
@@ -112,24 +112,25 @@ const verdict = computed(() => {
                                 <div class="bg-purple-500 h-full transition-all duration-1000 ease-out"
                                      :style="{ width: `${(stats.bot / stats.total) * 100}%` }"></div>
                            </div>
+                           
+                           <!-- STAMP (Visible Step 2) - Centered on Votes -->
+                           <transition name="stamp-in">
+                               <div v-if="step >= 2" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                                    <div class="border-8 px-6 py-3 rounded-lg transform -rotate-12 backdrop-blur-md bg-black/60 shadow-2xl"
+                                         :class="[theme.reveal?.stampBorder || 'border-white']">
+                                        <h1 class="text-4xl md:text-5xl font-black uppercase tracking-tighter whitespace-nowrap"
+                                            :class="[theme.reveal?.stampColor || 'text-white']">
+                                            {{ verdict }}
+                                        </h1>
+                                    </div>
+                               </div>
+                           </transition>
+
                            <!-- My Vote -->
                            <div v-if="myVote && !isMySubmission" class="mt-2 text-center text-[10px] font-bold flex items-center justify-center gap-2 opacity-70">
                                 <span class="text-slate-400">YOU VOTED:</span>
                                 <span :class="myVote === 'HUMAN' ? 'text-blue-400' : 'text-purple-400'">{{ myVote }}</span>
                            </div>
-                       </div>
-                   </transition>
-
-                   <!-- STAMP (Visible Step 2) - Absolute Centered in 2/3 Partition -->
-                   <transition name="stamp-in">
-                       <div v-if="step >= 2" class="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
-                            <div class="border-8 px-10 py-6 rounded-lg transform -rotate-12 backdrop-blur-sm bg-black/40 shadow-2xl"
-                                 :class="[theme.reveal?.stampBorder || 'border-white']">
-                                <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter whitespace-nowrap"
-                                    :class="[theme.reveal?.stampColor || 'text-white']">
-                                    {{ verdict }}
-                                </h1>
-                            </div>
                        </div>
                    </transition>
                </div>
