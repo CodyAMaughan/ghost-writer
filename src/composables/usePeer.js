@@ -142,7 +142,7 @@ export function usePeer() {
                 let systemPrompt = "";
 
                 if (msg.payload.agentId === 'custom') {
-                    systemPrompt = msg.payload.systemPrompt || "You are a generic helper.";
+                    systemPrompt = (msg.payload.systemPrompt || "You are a generic helper.") + " Keep it under 15 words.";
                 } else {
                     const agentDef = AGENTS.find(a => a.id === msg.payload.agentId);
                     if (agentDef) systemPrompt = agentDef.systemPrompt;
@@ -378,7 +378,7 @@ export function usePeer() {
             // Call directly
             let sys = "";
             if (agentId === 'custom') {
-                sys = customSystemPrompt;
+                sys = (customSystemPrompt || "You are a generic helper.") + " Keep it under 15 words.";
             } else {
                 const agentDef = AGENTS.find(a => a.id === agentId);
                 sys = agentDef ? agentDef.systemPrompt : "";
