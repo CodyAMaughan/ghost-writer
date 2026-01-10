@@ -13,19 +13,22 @@ description: A workflow for implementing features with agents in a safe, paralle
     * **If Success:** You have acquired the lock. Proceed to setup.
     * **If Failure (File exists):** Slot is busy. Try next slot.
     * *Fallback:* If all 5 are busy, create a new temp slot `temp-<timestamp>` (and lock it).
-2.  **Initialize Slot:**
+2.  **Initialize Slot (Safety Mode):**
     * Check if `.worktrees/<slot_name>` directory exists.
-    * **If No:** `git worktree add .worktrees/<slot_name>`
-    * **If Yes:**
-        * `cd .worktrees/<slot_name>`
-        * `git fetch origin main`
-        * `git checkout main`
-        * `git reset --hard origin/main` (Clear any debris from previous agents)
-        * `git clean -fd` (Remove untracked files)
+    * **If No (New Worktree):**
+        * `git worktree add .worktrees/<slot_name> origin/main --detach`
+        * *Note: Using `--detach` prevents "branch is already checked out" errors if the main repo is also on `main`.*
+    * **If Yes (Reuse Worktree):**
+        * `git -C .worktrees/<slot_name> fetch origin main`
+        * `git -C .worktrees/<slot_name> checkout --detach origin/main`
+        * `git -C .worktrees/<slot_name> reset --hard origin/main`
+        * `git -C .worktrees/<slot_name> clean -fd`
+        * *Note: Using `git -C` guarantees these commands run inside the slot, never the root.*
 3.  **Dependencies:**
-    * `npm install` (Uses existing cache if slot was used recently).
+    * `cd .worktrees/<slot_name> && npm install`
+    * *Note: Always chain the `cd` with `&&` to ensure `npm install` runs in the correct location.*
 4.  **Branching:**
-    * Create a branch based on user description: `git checkout -b feature/<kebab-name>`
+    * Create a branch based on user description: `git -C .worktrees/<slot_name> checkout -b feature/<kebab-name>`
 
 ## Step 2: Spec Ingestion
 1.  **Analyze Input:**
