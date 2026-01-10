@@ -73,34 +73,49 @@ watch(timer, (val) => {
 </script>
 
 <template>
-  <div :class="theme.font" class="h-full flex flex-col items-center w-full max-w-4xl mx-auto py-4 relative">
-    
+  <div
+    :class="theme.font"
+    class="h-full flex flex-col items-center w-full max-w-4xl mx-auto py-4 relative"
+  >
     <!-- TOP BAR -->
     <div class="w-full flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
       <div class="text-xs text-slate-500">
         ROUND <span class="text-white text-lg font-bold">{{ gameState.round }}/{{ gameState.maxRounds }}</span>
       </div>
-      <div v-if="activePhase === 'INPUT'" class="flex items-center gap-3">
-         <span class="text-xl font-bold font-mono" :class="timer < 10 ? 'text-red-500 animate-pulse' : 'text-green-400'">
-            {{ timer }}s
-         </span>
-         <div class="h-2 w-32 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-            <div class="h-full bg-green-500 transition-all duration-1000 ease-linear" 
-                 :style="{ width: `${(timer / gameState.settings.roundDuration) * 100}%` }"></div>
-         </div>
+      <div
+        v-if="activePhase === 'INPUT'"
+        class="flex items-center gap-3"
+      >
+        <span
+          class="text-xl font-bold font-mono"
+          :class="timer < 10 ? 'text-red-500 animate-pulse' : 'text-green-400'"
+        >
+          {{ timer }}s
+        </span>
+        <div class="h-2 w-32 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          <div
+            class="h-full bg-green-500 transition-all duration-1000 ease-linear" 
+            :style="{ width: `${(timer / gameState.settings.roundDuration) * 100}%` }"
+          />
+        </div>
       </div>
     </div>
 
     <!-- DYNAMIC PHASE COMPONENT -->
-    <component :is="activePhase === 'PROMPT' ? PhasePrompt : 
-                    activePhase === 'INPUT' ? PhaseInput :
-                    activePhase === 'VOTING' ? PhaseVoting :
-                    activePhase === 'REVEAL' ? PhaseReveal :
-                    activePhase === 'FINISH' ? PhaseFinish : null" 
-               class="w-full flex-grow flex flex-col" />
+    <component
+      :is="activePhase === 'PROMPT' ? PhasePrompt : 
+        activePhase === 'INPUT' ? PhaseInput :
+        activePhase === 'VOTING' ? PhaseVoting :
+        activePhase === 'REVEAL' ? PhaseReveal :
+        activePhase === 'FINISH' ? PhaseFinish : null" 
+      class="w-full flex-grow flex flex-col"
+    />
 
     <!-- TRANSITION OVERLAY -->
-    <PhaseTransition v-if="showTransition" :phaseName="nextPhaseName" @finish="handleTransitionFinish" />
-
+    <PhaseTransition
+      v-if="showTransition"
+      :phase-name="nextPhaseName"
+      @finish="handleTransitionFinish"
+    />
   </div>
 </template>

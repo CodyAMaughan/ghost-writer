@@ -18,12 +18,17 @@ const style = computed(() => ({
 </script>
 
 <template>
-    <div :class="[
-            size, 
-            'rounded-full bg-white bg-no-repeat overflow-hidden relative shadow-lg transition-transform hover:scale-105', 
-            showBorder ? `border-4 ${avatar.color.split(' ')[0]}` : '' 
-         ]"
-         :title="avatar.name">
-        <div class="w-full h-full" :style="style"></div>
-    </div>
+  <div
+    :class="[
+      size, 
+      'rounded-full bg-white bg-no-repeat overflow-hidden relative shadow-lg transition-transform hover:scale-105', 
+      showBorder ? `border-4 ${avatar.color.split(' ')[0]}` : '' 
+    ]"
+    :title="avatar.name"
+  >
+    <div
+      class="w-full h-full"
+      :style="style"
+    />
+  </div>
 </template>

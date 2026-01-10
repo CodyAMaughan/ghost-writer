@@ -31,17 +31,23 @@ const getPhaseTitle = (p) => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out"
-       :class="visible ? 'opacity-100' : 'opacity-0'">
+  <div
+    class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out"
+    :class="visible ? 'opacity-100' : 'opacity-0'"
+  >
+    <div
+      class="font-mono text-4xl md:text-6xl font-bold tracking-tighter animate-pulse mb-4 text-center"
+      :class="theme.colors.accent"
+    >
+      {{ getPhaseTitle(phaseName) }}
+    </div>
       
-      <div class="font-mono text-4xl md:text-6xl font-bold tracking-tighter animate-pulse mb-4 text-center" :class="theme.colors.accent">
-          {{ getPhaseTitle(phaseName) }}
-      </div>
-      
-      <div class="w-64 h-2 bg-slate-800 rounded overflow-hidden">
-          <div class="h-full animate-progress-bar" :class="theme.colors.button.split(' ')[0]"></div>
-      </div>
-      
+    <div class="w-64 h-2 bg-slate-800 rounded overflow-hidden">
+      <div
+        class="h-full animate-progress-bar"
+        :class="theme.colors.button.split(' ')[0]"
+      />
+    </div>
   </div>
 </template>
 
