@@ -1,12 +1,13 @@
+---
+description: Implements a feature in the current project, like a pair programmer (rather than creating a separate branch or worktree). Also won't use git commands like adding or committing or pushing files. 
+---
+
 # Direct Edit Workflow
 > **Description:** Agent acts as a pair programmer, modifying the current open folder state.
 > **Trigger:** `/implement_feature [description]`
 
 ## Step 1: Environment Prep
 > **Constraint:** Do not change branches or wipe files. Work with the current state.
-1.  **Dependencies:**
-    * Run `npm install` to ensure the current branch has necessary packages.
-    * *Optional:* Run `npm run lint -- --fix` to ensure the agent starts with a clean code style baseline.
 
 ## Step 2: Spec Ingestion
 1.  **Analyze Input:**
