@@ -27,27 +27,42 @@ description: A workflow for implementing features with agents in a safe, paralle
 4.  **Branching:**
     * Create a branch based on user description: `git checkout -b feature/<kebab-name>`
 
-## Step 2: Implementation (Terrain)
-1.  **Context:** You are now operating strictly inside `.worktrees/<slot_name>/`.
-2.  **Execute:** Implement the feature logic.
+## Step 2: Spec Ingestion
+1.  **Analyze Input:**
+    * If input is a file path (e.g., `.designs/feat.md`): Read it immediately.
+    * If input is text: Parse requirements.
+2.  **Branching:** Create `feature/<name>` branch.
 
-## Step 3: Preflight Verification
+## Step 3: TDD Cycle (The Builder Loop)
+1.  **Write Tests FIRST:**
+    * Based on the Spec/Requirements, create the test file (e.g., `tests/unit/NewFeature.spec.js`).
+    * **Run Test (Red):** `npx vitest run tests/unit/NewFeature.spec.js`
+    * *Assert:* It MUST fail. If it passes, the test is broken or feature exists.
+2.  **Implement Code:**
+    * Write the minimal code in `src/` to satisfy the test.
+3.  **Run Test (Green):**
+    * `npx vitest run tests/unit/NewFeature.spec.js`
+    * *Assert:* It MUST pass.
+    * *Optimization:* Only run this specific test file to save tokens/time.
+4.  **Repeat:** Iterate until all requirements in the Spec are met.
+
+## Step 4: Preflight Verification
 > **Constraint:** Do not proceed to Documentation until this passes.
 1.  **Execute Preflight:** Run the commands defined in `/preflight` *inside this worktree context*.
     * **Secret Scan:** `gitleaks detect --source . --no-git`
     * **Lint:** `npm run lint`
-    * **Test:** `npm test`
+    * **Test:** `npx vitest run tests`
 2.  **Failure Logic:** If any step fails, fix the code and re-run Step 3.
 
-## Step 4: Documentation Sync (Map)
+## Step 5: Documentation Sync (Map)
 1.  **Review:** Now that code is frozen and verified, compare it against `ARCHITECTURE.md` and `docs/GAME_DESIGN.md`.
 2.  **Update:** Update the markdown files *inside the worktree* to reflect any new architecture, state, or features.
 
-## Step 5: Pull Request
+## Step 6: Pull Request
 1.  **Commit:** `git add .` && `git commit -m "feat: [description]"`
 2.  **Push:** `git push origin feature/<kebab-name> --force`
 3.  **PR:** Create PR via `gh` or generate URL.
 
-## Step 6: Unlock
+## Step 7: Unlock
 1.  **Release Lock:** `rmdir ../<slot_name>.lock` (Do this from the parent or by path).
 2.  **Report:** "Feature [name] is ready in PR. Slot [name] has been released."
