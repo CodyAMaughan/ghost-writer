@@ -66,6 +66,10 @@ description: A workflow for implementing features with agents in a safe, paralle
 2.  **Push:** `git push origin feature/<kebab-name> --force`
 3.  **PR:** Create PR via `gh` or generate URL.
 
-## Step 7: Unlock
-1.  **Release Lock:** `rmdir ../<slot_name>.lock` (Do this from the parent or by path).
-2.  **Report:** "Feature [name] is ready in PR. Slot [name] has been released."
+## Step 7: Unlock and Cleanup
+1.  **Remove Worktree:**
+    * `git worktree remove .worktrees/<slot_name> --force`
+    * *Note: This deletes the folder AND tells Git the branch is free to be checked out elsewhere.*
+2.  **Release Lock:**
+    * `rm .worktrees/<slot_name>.lock`
+3.  **Report:** "Feature [name] is ready with PR [PR link]. Worktree cleaned up and slot released."
