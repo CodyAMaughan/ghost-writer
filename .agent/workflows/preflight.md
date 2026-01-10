@@ -1,3 +1,7 @@
+---
+description: A simple workflow that is reused by other workflows to ensure linting, testing, secret scanning, and documentation occurs as preflight checks.
+---
+
 # Preflight Workflow
 > Description: Run this before committing code to ensure quality and safety.
 

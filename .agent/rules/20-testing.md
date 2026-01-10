@@ -1,3 +1,8 @@
+---
+trigger: model_decision
+description: Writing or fixing tests
+---
+
 # Testing Guidelines
 > **Activation:** Model Decision (Context: Writing or fixing tests)
 

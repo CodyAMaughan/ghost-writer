@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: **/*.vue
+---
+
 # Vue.js Coding Standards
 > **Activation:** `**/*.vue`
 
