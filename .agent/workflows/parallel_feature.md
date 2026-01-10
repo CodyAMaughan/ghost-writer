@@ -4,7 +4,7 @@ description: A workflow for implementing features with agents in a safe, paralle
 
 # Parallel Feature Workflow
 > **Description:** Atomic slot allocation for concurrent agent work.
-> **Trigger:** `/parallel [description]`
+> **Trigger:** `/parallel_feature [description]`
 
 ## Step 1: Atomic Slot Allocation
 1.  **Find a Free Slot:**
