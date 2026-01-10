@@ -1,0 +1,46 @@
+# Direct Edit Workflow
+> **Description:** Agent acts as a pair programmer, modifying the current open folder state.
+> **Trigger:** `/implement_feature [description]`
+
+## Step 1: Environment Prep
+> **Constraint:** Do not change branches or wipe files. Work with the current state.
+1.  **Dependencies:**
+    * Run `npm install` to ensure the current branch has necessary packages.
+    * *Optional:* Run `npm run lint -- --fix` to ensure the agent starts with a clean code style baseline.
+
+## Step 2: Spec Ingestion
+1.  **Analyze Input:**
+    * If input is a file path (e.g., `.designs/feat.md`): Read it immediately.
+    * If input is text: Parse requirements.
+2.  **Context Check:**
+    * Verify the agent understands the *current* project structure by reading `package.json` and the file structure list.
+
+## Step 3: TDD Cycle (The Builder Loop)
+1.  **Write Tests FIRST:**
+    * Based on the Spec, create or modify the test file (e.g., `tests/unit/NewFeature.spec.js`).
+    * **Run Test (Red):** `npm run test -- tests/unit/NewFeature.spec.js` (or `vitest run ...`)
+    * *Assert:* It MUST fail.
+2.  **Implement Code:**
+    * Write the minimal code in `src/` to satisfy the test.
+3.  **Run Test (Green):**
+    * `npm run test -- tests/unit/NewFeature.spec.js`
+    * *Assert:* It MUST pass.
+4.  **Repeat:** Iterate until all requirements in the Spec are met.
+
+## Step 4: Preflight Verification
+> **Constraint:** Ensure local changes didn't break existing logic.
+1.  **Execute Preflight:**
+    * **Lint:** `npm run lint`
+    * **Test Suite:** `npm run test` (Runs all tests).
+2.  **Failure Logic:** If any step fails, fix the code and re-run Step 3.
+
+## Step 5: Documentation Sync (Map)
+1.  **Review:** Compare the new code against `ARCHITECTURE.md` and `docs/GAME_DESIGN.md`.
+2.  **Update:** Directly edit the markdown files to reflect new features or logic changes.
+
+## Step 6: Handover
+> **Constraint:** Do NOT `git add` or `git commit`.
+1.  **Report:**
+    * "Modifications complete. Tests are passing."
+    * List modified files.
+    * "Ready for your review."
