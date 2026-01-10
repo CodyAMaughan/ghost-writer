@@ -3,8 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { usePeer } from '../src/composables/usePeer';
 import { THEMES } from '../src/config/themes';
-import GameScreen from '../src/components/GameScreen.vue';
-import Lobby from '../src/components/Lobby.vue';
+// GameScreen and Lobby imports removed as tests use mocks or mount differently
 import PhaseInput from '../src/components/phases/PhaseInput.vue';
 
 // Mock fetch globally
@@ -276,7 +275,7 @@ describe('Feature Integration Tests', () => {
 
     // TEST 11: Timer Edge Cases
     it('Handles timer at 0 correctly (auto-submit)', async () => {
-        const { gameState, submitAnswer } = usePeer();
+        const { gameState } = usePeer();
 
         gameState.phase = 'INPUT';
         gameState.timer = 5;

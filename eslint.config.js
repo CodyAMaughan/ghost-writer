@@ -5,7 +5,7 @@ export default [
     {
         rules: {
             'vue/multi-word-component-names': 'off',
-            'no-unused-vars': 'warn'
+            'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }]
         },
         languageOptions: {
             ecmaVersion: 'latest',

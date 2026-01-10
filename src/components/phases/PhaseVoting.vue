@@ -2,11 +2,11 @@
 import { ref, computed } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { THEMES } from '../../config/themes';
-import { User, Zap, Lock, CheckCircle, UserCircle } from 'lucide-vue-next';
+import { User, Zap, Lock, CheckCircle } from 'lucide-vue-next';
 import AvatarIcon from '../AvatarIcon.vue';
 import { AVATARS } from '../../config/avatars';
 
-const { gameState, isHost, myId, submitVote, lockVotes: lockVotesAction } = usePeer();
+const { gameState, myId, submitVote } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
 const votes = ref({});

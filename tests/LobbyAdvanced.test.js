@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import { reactive, nextTick } from 'vue';
 import Lobby from '../src/components/Lobby.vue';
 import { usePeer } from '../src/composables/usePeer'; // Top-level import
@@ -57,7 +57,7 @@ const mockActions = {
         mockGameState.players = [{ id: 'host-id', name, isHost: true, avatarId: 0, score: 0 }];
     }),
 
-    joinGame: vi.fn((code, name, password = '') => {
+    joinGame: vi.fn((code, name, _password = '') => {
         mockIsHost.value = false;
         mockMyId.value = 'player-id';
         mockMyName.value = name;

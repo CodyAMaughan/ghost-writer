@@ -1,5 +1,4 @@
 // tests/mocks/peerjs.js
-import { vi } from 'vitest';
 
 export class MockPeer {
     static instances = []; // Keeps track of peers created by the app
@@ -70,7 +69,8 @@ class MockConnection {
         this.handlers[event].push(callback);
     }
 
-    send(data) {
+
+    send(_data) {
         // We can spy on this in tests to see if the app sent a message
     }
 

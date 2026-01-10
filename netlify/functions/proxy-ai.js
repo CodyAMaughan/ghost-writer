@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 exports.handler = async function (event, context) {
     // CORS headers for local dev and production
     const headers = {

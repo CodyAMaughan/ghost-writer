@@ -508,7 +508,6 @@ export function usePeer() {
     const calculateScores = () => {
         // See Design Doc 3.3
         // We need the REAL submissions to score, which Host has.
-        const votes = gameState.submissions.map(s => s.votes);
 
         gameState.submissions.forEach(sub => {
             let humanVotes = 0;

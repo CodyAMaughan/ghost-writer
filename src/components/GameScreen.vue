@@ -45,7 +45,6 @@ watch(showTransition, (val) => {
     }
 });
 
-const currentRound = computed(() => gameState.round);
 const timer = computed(() => gameState.timer);
 
 // AUDIO LOGIC

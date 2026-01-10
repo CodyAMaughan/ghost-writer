@@ -3,7 +3,7 @@ import { computed, watch } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
-import { UserCircle, CheckCircle, XCircle, MinusCircle } from 'lucide-vue-next';
+import { CheckCircle, XCircle, MinusCircle } from 'lucide-vue-next';
 import AvatarIcon from '../AvatarIcon.vue';
 import { AVATARS } from '../../config/avatars';
 

@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { reactive, ref } from 'vue';
 import { usePeer } from '../src/composables/usePeer'; // Import the mocked version
 
 // --- Mock usePeer following the pattern from Integration.test.js ---
@@ -53,7 +52,7 @@ vi.mock('../src/composables/usePeer', () => {
             mockGameState.players = [{ id: 'host-id', name, isHost: true, avatarId: 0, score: 0 }];
         }),
 
-        joinGame: vi.fn((code, name, password = '') => {
+        joinGame: vi.fn((code, name, _password = '') => {
             mockIsHost.value = false;
             mockMyId.value = 'player-id';
             mockMyName.value = name;

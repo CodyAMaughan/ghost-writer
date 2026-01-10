@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { Howl, Howler } from 'howler';
 import { SOUNDS } from '../config/sounds';
 

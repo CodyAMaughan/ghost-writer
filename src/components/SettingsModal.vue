@@ -2,7 +2,12 @@
 import { useAudio } from '../composables/useAudio';
 import { X, Volume2, VolumeX, Music, Speaker, Settings } from 'lucide-vue-next';
 
-defineProps(['isOpen']);
+defineProps({
+  isOpen: {
+    type: Boolean,
+    required: true
+  }
+});
 defineEmits(['close']);
 
 const { masterVolume, musicVolume, sfxVolume, isMuted, syncVolumes, playSfx } = useAudio();

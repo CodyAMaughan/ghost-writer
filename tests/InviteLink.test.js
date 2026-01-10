@@ -2,7 +2,6 @@ import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { ref } from 'vue';
 import Lobby from '../src/components/Lobby.vue';
-import { usePeer } from '../src/composables/usePeer';
 
 // Mock usePeer
 vi.mock('../src/composables/usePeer', () => {

@@ -62,7 +62,7 @@ const selectAgent = async (agent) => {
     try {
         const options = await getGhostOptions(agent.id);
         ghostOptions.value = options;
-    } catch (e) {
+    } catch {
         ghostGenerationFailed.value = true;
         alert("Ghost Uplink Failed");
     } finally {
@@ -81,7 +81,7 @@ const handleCustomGenerate = async (customData) => {
     try {
         const options = await getGhostOptions('custom', customData.systemPrompt);
         ghostOptions.value = options;
-    } catch(e) {
+    } catch {
         ghostGenerationFailed.value = true;
         alert("Ghost Uplink Failed");
     } finally {

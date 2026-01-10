@@ -6,7 +6,7 @@ import { THEMES } from '../../config/themes';
 import confetti from 'canvas-confetti';
 
 const { gameState, isHost, myId, nextRound, startGame, leaveGame, returnToLobby } = usePeer();
-const { playSfx, playMusic } = useAudio();
+const { playSfx } = useAudio();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
 const leaderboard = computed(() => {

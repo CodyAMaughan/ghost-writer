@@ -3,8 +3,11 @@ import { onMounted, ref, computed } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { THEMES } from '../config/themes';
 
-const props = defineProps({
-  phaseName: String
+defineProps({
+  phaseName: {
+    type: String,
+    default: 'LOADING'
+  }
 });
 
 const emit = defineEmits(['finish']);

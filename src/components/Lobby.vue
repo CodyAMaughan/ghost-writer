@@ -2,13 +2,13 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { useAudio } from '../composables/useAudio';
-import { User, Server, Key, LogIn, Users, Play, Ban, Trash2, Check, X, Link, Share } from 'lucide-vue-next';
+import { Users, Check, X, Link, Share, Server, LogIn, Key, Play, Trash2 } from 'lucide-vue-next';
 import AvatarIcon from './AvatarIcon.vue';
 import { AVATARS } from '../config/avatars';
 import { THEMES } from '../config/themes';
 import ApiKeyHelpModal from './ApiKeyHelpModal.vue';
 
-const { initHost, joinGame, gameState, myId, myName, startGame, isHost, leaveGame, setTheme, updateAvatar, 
+const { initHost, joinGame, gameState, myId, startGame, isHost, leaveGame, setTheme, updateAvatar, 
         approvePendingPlayer, rejectPendingPlayer, kickPlayer, connectionError, isPending } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 

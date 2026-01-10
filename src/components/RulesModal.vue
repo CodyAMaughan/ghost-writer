@@ -5,14 +5,14 @@ defineProps({
   isOpen: Boolean
 });
 
-const emit = defineEmits(['close']);
+defineEmits(['close']);
 
 import { computed } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { THEMES } from '../config/themes';
 
 const { gameState } = usePeer();
-const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral); // eslint-disable-line no-unused-vars
 </script>
 
 <template>

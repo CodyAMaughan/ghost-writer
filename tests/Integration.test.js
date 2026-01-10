@@ -1,8 +1,7 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import GameScreen from '../src/components/GameScreen.vue';
-import { usePeer } from '../src/composables/usePeer';
 import { THEMES } from '../src/config/themes';
 import { reactive, nextTick, ref } from 'vue';
 import Lobby from '../src/components/Lobby.vue';
@@ -281,7 +280,7 @@ describe('GameScreen Integration', () => {
 
     it('Auto-submits Ghost answer when timer hits 0', async () => {
         // 1. Mount component
-        const wrapper = mount(GameScreen, { global: { stubs } });
+        mount(GameScreen, { global: { stubs } });
 
         // 2. Simulate timer hitting 0 
         // (The component should be watching gameState.timer)

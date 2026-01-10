@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { UserCog, Sparkles, Save, X } from 'lucide-vue-next';
 
 // Props
-const props = defineProps({
+defineProps({
   isOpen: Boolean,
   mode: {
     type: String,
@@ -16,7 +16,7 @@ import { usePeer } from '../composables/usePeer';
 import { THEMES } from '../config/themes';
 
 const { gameState } = usePeer();
-const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral); // eslint-disable-line no-unused-vars
 
 // Local State
 const customAgent = ref({
@@ -32,7 +32,7 @@ onMounted(() => {
     if (stored) {
         try {
             customAgent.value = JSON.parse(stored);
-        } catch(e) {}
+        } catch {}
     }
 });
 

@@ -6,7 +6,7 @@ defineProps({
   isOpen: Boolean
 });
 
-const emit = defineEmits(['close']);
+defineEmits(['close']);
 
 const copied = ref(false);
 
