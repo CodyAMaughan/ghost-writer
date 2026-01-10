@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi } from 'vitest';
-import PhaseFinish from '../src/components/phases/PhaseFinish.vue';
+import PhaseFinish from '../../../src/components/phases/PhaseFinish.vue';
 
 // Mock dependencies
 const mockPeer = {
@@ -18,14 +18,14 @@ const mockPeer = {
     leaveGame: vi.fn()
 };
 
-vi.mock('../src/composables/usePeer', () => ({
+vi.mock('../../../src/composables/usePeer', () => ({
     usePeer: () => mockPeer
 }));
 
 // Mock Audio
 const mockPlaySfx = vi.fn();
 const mockPlayMusic = vi.fn();
-vi.mock('../src/composables/useAudio', () => ({
+vi.mock('../../../src/composables/useAudio', () => ({
     useAudio: () => ({
         playSfx: mockPlaySfx,
         playMusic: mockPlayMusic

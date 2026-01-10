@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
-import { usePeer } from '../src/composables/usePeer';
-import { THEMES } from '../src/config/themes';
+import { usePeer } from '../../../src/composables/usePeer';
+import { THEMES } from '../../../src/config/themes';
 // GameScreen and Lobby imports removed as tests use mocks or mount differently
-import PhaseInput from '../src/components/phases/PhaseInput.vue';
+import PhaseInput from '../../../src/components/phases/PhaseInput.vue';
 
 // Mock fetch globally
 global.fetch = vi.fn();
 
 // Vi mock for usePeer
-vi.mock('../src/composables/usePeer', () => {
+vi.mock('../../../src/composables/usePeer', () => {
     const { reactive } = require('vue');
     const mockGameState = reactive({
         phase: 'INPUT',
@@ -206,7 +206,7 @@ describe('Feature Integration Tests', () => {
             json: () => Promise.resolve({ result: '["Proxy 1", "Proxy 2", "Proxy 3"]' })
         });
 
-        const { fetchAI } = await import('../src/services/ai');
+        const { fetchAI } = await import('../../../src/services/ai');
 
         await fetchAI('official-server', 'access-code', 'Test prompt', 'Test system');
 
@@ -227,7 +227,7 @@ describe('Feature Integration Tests', () => {
             })
         });
 
-        const { fetchAI } = await import('../src/services/ai');
+        const { fetchAI } = await import('../../../src/services/ai');
         const result = await fetchAI('gemini', 'test-key', 'Test', 'System');
 
         // Should successfully extract array despite extra text

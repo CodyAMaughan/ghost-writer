@@ -1,10 +1,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import GameScreen from '../src/components/GameScreen.vue';
-import { THEMES } from '../src/config/themes';
+import GameScreen from '../../../src/components/GameScreen.vue';
+import { THEMES } from '../../../src/config/themes';
 import { reactive, nextTick, ref } from 'vue';
-import Lobby from '../src/components/Lobby.vue';
+import Lobby from '../../../src/components/Lobby.vue';
 
 // --- State Factory ---
 // Ensures clean state for every test
@@ -77,7 +77,7 @@ const mockActions = {
 };
 
 // --- Module Mock ---
-vi.mock('../src/composables/usePeer', () => ({
+vi.mock('../../../src/composables/usePeer', () => ({
     usePeer: () => ({
         gameState: mockGameState,
         myId: ref('p1'),

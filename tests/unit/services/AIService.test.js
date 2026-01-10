@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchAI } from '../src/services/ai';
+import { fetchAI } from '../../../src/services/ai';
 
 global.fetch = vi.fn();
 
