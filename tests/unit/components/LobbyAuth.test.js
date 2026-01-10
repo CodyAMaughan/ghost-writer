@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { usePeer } from '../src/composables/usePeer'; // Import the mocked version
+import { usePeer } from '../../../src/composables/usePeer'; // Import the mocked version
 
 // --- Mock usePeer following the pattern from Integration.test.js ---
-vi.mock('../src/composables/usePeer', () => {
+vi.mock('../../../src/composables/usePeer', () => {
     const { reactive, ref } = require('vue');
 
     const createDefaultState = () => ({

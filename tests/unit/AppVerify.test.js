@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { shallowMount } from '@vue/test-utils';
-import App from '../src/App.vue';
+import App from '../../src/App.vue';
 
 // Mock usePeer
 const mockGameState = {
@@ -11,7 +11,7 @@ const mockGameState = {
     settings: {}
 };
 
-vi.mock('../src/composables/usePeer', () => ({
+vi.mock('../../src/composables/usePeer', () => ({
     usePeer: () => ({
         gameState: mockGameState,
         // Add other necessary exports if App uses them

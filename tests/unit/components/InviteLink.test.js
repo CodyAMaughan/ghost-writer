@@ -1,10 +1,10 @@
 import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { ref } from 'vue';
-import Lobby from '../src/components/Lobby.vue';
+import Lobby from '../../../src/components/Lobby.vue';
 
 // Mock usePeer
-vi.mock('../src/composables/usePeer', () => {
+vi.mock('../../../src/composables/usePeer', () => {
     const gameState = {
         currentTheme: 'classic',
         players: [],
@@ -35,7 +35,7 @@ vi.mock('../src/composables/usePeer', () => {
 });
 
 // Mock useAudio
-vi.mock('../src/composables/useAudio', () => ({
+vi.mock('../../../src/composables/useAudio', () => ({
     useAudio: () => ({
         playMusic: vi.fn(),
         stopMusic: vi.fn(),

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { reactive, nextTick } from 'vue';
-import Lobby from '../src/components/Lobby.vue';
-import { usePeer } from '../src/composables/usePeer'; // Top-level import
+import Lobby from '../../../src/components/Lobby.vue';
+import { usePeer } from '../../../src/composables/usePeer'; // Top-level import
 
 // Mock AI service to prevent import errors (same as integration tests)
-vi.mock('../src/services/ai', () => ({
+vi.mock('../../../src/services/ai', () => ({
     fetchAI: vi.fn()
 }));
 
@@ -106,7 +106,7 @@ const mockActions = {
 };
 
 // Mock usePeer
-vi.mock('../src/composables/usePeer', () => {
+vi.mock('../../../src/composables/usePeer', () => {
     const { ref } = require('vue'); // Import ref inside factory
     const mockIsPending = ref(false);
     const mockConnectionError = ref('');
@@ -125,7 +125,7 @@ vi.mock('../src/composables/usePeer', () => {
 });
 
 // Mock useAudio
-vi.mock('../src/composables/useAudio', () => ({
+vi.mock('../../../src/composables/useAudio', () => ({
     useAudio: () => ({
         playMusic: vi.fn(),
         stopMusic: vi.fn(),
@@ -235,7 +235,7 @@ describe('LobbyAdvanced - Advanced Lobby Controls', () => {
 
     describe('Connection Error Handling', () => {
         it('displays connectionError in JOIN form', async () => {
-            const { usePeer } = await import('../src/composables/usePeer');
+            const { usePeer } = await import('../../../src/composables/usePeer');
             const peerInstance = usePeer();
 
             // Simulate auth error
