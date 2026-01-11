@@ -298,8 +298,6 @@ const verdict = computed(() => {
         v-else
         class="fixed bottom-8 text-center w-full text-slate-500 animate-pulse"
       >
-        <span v-if="step < 4">Revealing...</span>
-        <span v-else>Waiting for next response...</span>
       </div>
     </div>
   </div>

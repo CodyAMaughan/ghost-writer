@@ -11,6 +11,15 @@ const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 const votes = ref({});
 const votesLocked = ref(false);
 
+const allVotesCast = computed(() => {
+    // Required votes: all submissions that are NOT mine
+    const required = gameState.submissions
+        .filter(s => s.authorId !== myId.value)
+        .map(s => s.authorId);
+    
+    return required.every(id => votes.value[id]);
+});
+
 const toggleVote = (targetId, type) => {
     if (votesLocked.value) return;
     votes.value[targetId] = type;
@@ -117,15 +126,20 @@ const lockVotes = () => {
 
     <div
       v-if="!votesLocked"
-      class="fixed bottom-8 left-0 right-0 flex justify-center pointer-events-none"
+      class="fixed bottom-8 left-0 right-0 flex justify-center z-50 pointer-events-none"
     >
       <button
         data-testid="submit-votes-btn"
-        class="pointer-events-auto text-black font-bold py-3 px-12 rounded-full shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
-        :class="theme.colors.button"
+        class="pointer-events-auto font-bold py-3 px-12 rounded-full shadow-xl transition-all flex items-center gap-2"
+        :class="[
+          allVotesCast 
+            ? [theme.colors.button, 'hover:scale-105'] 
+            : 'bg-slate-700/50 text-slate-400 cursor-not-allowed border border-slate-600'
+        ]"
+        :disabled="!allVotesCast"
         @click="lockVotes"
       >
-        {{ theme.copy.submitVotesBtn }}
+        {{ allVotesCast ? theme.copy.submitVotesBtn : 'MAKE SELECTIONS' }}
       </button>
     </div>
     <div
