@@ -75,3 +75,15 @@ The game features 4 distinct themes that completely overhaul the UI strings, col
 *   `SUBMIT_ANSWER`: `{ text, source, agent }`
 *   `SUBMIT_VOTE`: `{ targetAuthorId, guess }`
 *   `REQUEST_GHOST`: `{ agentId, customSystemPrompt }` -> Host fetches AI and returns options.
+
+## 6. Social Integration
+*   **Discord Community:** Direct invite link in the application header to foster community growth.
+*   **Sharing:** "Share2" menu allows posting game invites/prompts to Twitter, Reddit, LinkedIn, and WhatsApp.
+
+## 7. Streamer Mode
+*   **Purpose:** Masks sensitive information (Room Code, QR Code) to prevent stream sniping.
+*   **Features:**
+    *   Room Code hidden in header and lobby.
+    *   QR Code blurred in lobby.
+    *   "Persistent Prompt" in Reveal Phase ensures viewers tuning in late can see context.
+*   **Controls:** Toggleable via Settings Modal. State persisted in `localStorage`.

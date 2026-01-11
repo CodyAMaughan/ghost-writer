@@ -2,15 +2,24 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { useAudio } from '../composables/useAudio';
-import { Users, Check, X, Link, Share, Server, LogIn, Key, Play, Trash2 } from 'lucide-vue-next';
+import { Users, Check, X, Link, Share, Server, LogIn, Key, Play, Trash2, EyeOff, Wifi } from 'lucide-vue-next';
 import AvatarIcon from './AvatarIcon.vue';
 import { AVATARS } from '../config/avatars';
 import { THEMES } from '../config/themes';
 import ApiKeyHelpModal from './ApiKeyHelpModal.vue';
+import QrcodeVue from 'qrcode.vue';
+import { useStreamerMode } from '../composables/useStreamerMode';
 
 const { initHost, joinGame, gameState, myId, startGame, isHost, leaveGame, setTheme, updateAvatar, 
         approvePendingPlayer, rejectPendingPlayer, kickPlayer, connectionError, isPending } = usePeer();
+const { isStreamerMode } = useStreamerMode();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+const joinUrl = computed(() => {
+    if (typeof window !== 'undefined') {
+        return `${window.location.origin}?room=${gameState.roomCode}`;
+    }
+    return '';
+});
 
 const mode = ref('LANDING'); // LANDING, HOSTING, JOINING, WAITING
 const isConnecting = ref(false); // Track connection status to prevent multiple clicks
@@ -134,13 +143,46 @@ const handleHost = () => {
   mode.value = 'WAITING';
 };
 
+const showConnectingModal = ref(false);
+let connectionTimer = null;
+
 const handleJoin = () => {
   if(!form.value.name || !form.value.code) return alert("Name & Room Code required");
   if(isConnecting.value) return; 
   
   isConnecting.value = true;
+  connectionError.value = ''; // Clear previous errors
+  showConnectingModal.value = true;
+  
+  // Start 5s timeout
+  connectionTimer = setTimeout(() => {
+    if (showConnectingModal.value && mode.value === 'JOINING') {
+        showConnectingModal.value = false;
+        isConnecting.value = false;
+        connectionError.value = "Connection timed out. Check room code.";
+    }
+  }, 5000);
+
   joinGame(form.value.code.toUpperCase(), form.value.name, form.value.password);
 };
+
+// Cleanup timer
+watch(showConnectingModal, (val) => {
+    if (!val && connectionTimer) {
+        clearTimeout(connectionTimer);
+        connectionTimer = null;
+    }
+});
+
+// If we successfully join (mode changes to WAITING) or error occurs, or pending (Waiting Room), close modal
+watch([mode, connectionError, isPending], ([newMode, newError, newPending]) => {
+    if (newMode === 'WAITING' || newPending) {
+        showConnectingModal.value = false;
+    }
+    if (newError) {
+        showConnectingModal.value = false;
+    }
+});
 
 const handleLeave = () => {
     if(confirm("Are you sure you want to disconnect?")) {
@@ -149,16 +191,20 @@ const handleLeave = () => {
     }
 };
 
+const cancelPending = () => {
+    leaveGame(); // This now clears isPending too
+    mode.value = 'JOINING'; // Go back to Join Form
+};
+
+const copyStatus = ref('IDLE'); // 'IDLE' | 'COPIED'
+
 const copyCode = () => {
   navigator.clipboard.writeText(gameState.roomCode);
-  const btn = document.getElementById('copy-code-btn');
-  // Simple visual feedback if desired, or just alert
-  if (btn) {
-     const original = btn.innerText;
-     btn.innerText = 'COPIED!';
-     setTimeout(() => btn.innerText = original, 1000);
-  }
-}
+  copyStatus.value = 'COPIED';
+  setTimeout(() => {
+    copyStatus.value = 'IDLE';
+  }, 1000);
+};
 
 // Invite System
 const copyLink = async () => {
@@ -473,7 +519,7 @@ const isTaken = (id) => {
         <!-- Cancel Button -->
         <button
           class="mt-4 text-xs text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-500 px-4 py-2 rounded transition-colors"
-          @click="handleLeave"
+          @click="cancelPending"
         >
           Cancel
         </button>
@@ -482,7 +528,7 @@ const isTaken = (id) => {
 
     <!-- JOIN FORM -->
     <div
-      v-else-if="mode === 'JOINING'"
+      v-if="mode === 'JOINING' && !isPending"
       class="w-full bg-slate-800 p-8 rounded-lg border border-slate-600 shadow-2xl"
     >
       <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-2">
@@ -578,35 +624,73 @@ const isTaken = (id) => {
           </div>
            
           <!-- ROOM CODE & INVITE -->
-          <div class="flex gap-2 items-stretch">
-            <div
-              id="copy-code-btn"
-              class="cursor-pointer bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded border border-slate-600 flex flex-col items-center group min-w-[120px]"
-              @click="copyCode"
+          <div class="flex gap-4 items-stretch">
+            <!-- QR CODE -->
+            <div 
+              v-if="joinUrl"
+              class="bg-white p-2 rounded transition-all duration-500 shrink-0 hidden md:block"
+              :class="{'blur-xl hover:blur-none opacity-20 hover:opacity-100': isStreamerMode}"
+              title="Scan to Join"
+              data-testid="lobby-qr-container"
             >
-              <span class="text-xs text-slate-500 group-hover:text-slate-300">ACCESS CODE</span>
-              <span
-                class="text-2xl font-bold tracking-[0.2em]"
-                :class="theme.colors.accent"
-              >{{ gameState.roomCode }}</span>
+              <QrcodeVue
+                :value="joinUrl"
+                :size="70"
+                level="H"
+              />
             </div>
-            <!-- Invite Buttons -->
-            <div class="flex flex-col gap-1">
-              <button
-                id="copy-link-btn"
-                class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 rounded text-slate-400 hover:text-white"
-                title="Copy Invite Link"
-                @click="copyLink"
+
+            <div class="flex gap-2 items-stretch">
+              <div
+                id="copy-code-btn"
+                class="cursor-pointer bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded border border-slate-600 flex flex-col items-center justify-center group min-w-[140px]"
+                @click="copyCode"
               >
-                <Link class="w-4 h-4" />
-              </button>
-              <button
-                class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 rounded text-slate-400 hover:text-white"
-                title="Share Invite"
-                @click="shareLink"
-              >
-                <Share class="w-4 h-4" />
-              </button>
+                <div v-if="copyStatus === 'IDLE'" class="flex flex-col items-center">
+                    <span class="text-xs text-slate-500 group-hover:text-slate-300 uppercase font-bold">Access Code</span>
+                    
+                    <span
+                    v-if="!isStreamerMode"
+                    class="text-2xl font-bold tracking-[0.2em]"
+                    :class="theme.colors.accent"
+                    data-testid="lobby-code-display"
+                    >{{ gameState.roomCode }}</span>
+                    
+                    <span
+                        v-else
+                        class="text-xl font-bold flex items-center gap-2 mt-1"
+                        :class="theme.colors.accent"
+                        data-testid="lobby-code-display"
+                    >
+                        <EyeOff class="w-5 h-5" /> ****
+                    </span>
+                    
+                    <span v-if="isStreamerMode" class="text-[10px] text-slate-500 mt-0.5">Hidden</span>
+                </div>
+                <div v-else class="flex flex-col items-center animate-bounce">
+                    <Check class="w-8 h-8 text-green-500 mb-1" />
+                    <span class="text-green-500 font-bold tracking-widest">COPIED!</span>
+                </div>
+              </div>
+
+              <!-- Invite Buttons -->
+              <div class="flex flex-col gap-1">
+                <button
+                  id="copy-link-btn"
+                  class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 rounded text-slate-400 hover:text-white transition-colors"
+                  title="Copy Invite Link"
+                  @click="copyLink"
+                >
+                  <Link class="w-4 h-4" />
+                </button>
+                <button
+                  class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 rounded text-slate-400 hover:text-white transition-colors"
+                  title="Share Invite"
+                  @click="shareLink"
+                >
+                  <Share class="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -844,4 +928,41 @@ const isTaken = (id) => {
       </div>
     </div>
   </div>
+
+    <!-- CONNECTING MODAL -->
+    <div
+      v-if="showConnectingModal"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+    >
+      <div class="bg-slate-800 border border-slate-600 rounded-xl p-8 flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300 w-full max-w-sm">
+        <div class="relative">
+             <Wifi class="w-16 h-16 text-blue-400 animate-pulse" />
+             <div class="absolute inset-0 bg-blue-400 blur-xl opacity-20 animate-pulse"></div>
+        </div>
+        
+        <div class="text-center">
+             <h3 class="text-xl font-bold text-white tracking-widest mb-1 flex items-center justify-center gap-1">
+                CONNECTING<span class="loading-dots"></span>
+             </h3>
+             <p class="text-xs text-slate-400">Locating Lobby...</p>
+        </div>
+      </div>
+    </div>
 </template>
+
+<style>
+@keyframes loading-dots {
+  0% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+  100% { content: '.'; }
+}
+
+.loading-dots:after {
+  content: '.';
+  animation: loading-dots 1.5s steps(1) infinite;
+  display: inline-block;
+  width: 1rem;
+  text-align: left;
+}
+</style>

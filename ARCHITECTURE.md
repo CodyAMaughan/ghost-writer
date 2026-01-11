@@ -33,7 +33,7 @@ Visuals are strictly controlled by `src/config/themes.js`.
 ## 5. Directory Structure
 
 *   `src/components/`: Vue components (GameScreen, Lobby).
-*   `src/composables/`: Shared logic (`usePeer.js`, `useAudio.js`).
+*   `src/composables/`: Shared logic (`usePeer.js`, `useAudio.js`, `useStreamerMode.js`).
 *   `src/config/`: Static configuration (`themes.js`, `avatars.js`).
 *   `src/services/`: External API handlers (`ai.js`).
 *   `tests/`: Integration and Unit tests (Vitest).

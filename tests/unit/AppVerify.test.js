@@ -23,4 +23,10 @@ describe('App.vue', () => {
         const wrapper = shallowMount(App);
         expect(wrapper.exists()).toBe(true);
     });
+
+    it('contains a link to the Discord server', () => {
+        const wrapper = shallowMount(App);
+        const discordLink = wrapper.find('a[href*="discord.gg"]');
+        expect(discordLink.exists()).toBe(true);
+    });
 });

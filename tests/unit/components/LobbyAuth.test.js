@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { usePeer } from '../../../src/composables/usePeer'; // Import the mocked version
+import { usePeer, resetState } from '../../../src/composables/usePeer'; // Import the mocked version
+import { mount } from '@vue/test-utils';
+import Lobby from '../../../src/components/Lobby.vue';
 
 // --- Mock usePeer following the pattern from Integration.test.js ---
 vi.mock('../../../src/composables/usePeer', () => {
@@ -83,10 +85,27 @@ vi.mock('../../../src/composables/usePeer', () => {
         }),
 
         startGame: vi.fn(),
-        leaveGame: vi.fn(),
+        leaveGame: vi.fn(() => {
+            mockIsPending.value = false;
+            mockGameState.roomCode = '';
+            mockGameState.players = [];
+            mockIsHost.value = false;
+        }),
         setTheme: vi.fn(),
         updateAvatar: vi.fn()
     };
+
+    const resetState = () => {
+        // console.log('RESETTING STATE via mock helper');
+        Object.assign(mockGameState, createDefaultState());
+        mockIsHost.value = false;
+        mockMyId.value = '';
+        mockMyName.value = 'Test Player';
+        mockIsPending.value = false;
+        mockConnectionError.value = '';
+    };
+
+    // console.log('MOCK FACTORY INITIALIZED');
 
     return {
         usePeer: () => ({
@@ -102,37 +121,16 @@ vi.mock('../../../src/composables/usePeer', () => {
         __mockGameState: mockGameState,
         __mockIsHost: mockIsHost,
         __mockIsPending: mockIsPending,
-        __mockConnectionError: mockConnectionError
+        __mockConnectionError: mockConnectionError,
+        resetState
     };
 });
-
-/**
- * Integration Tests for Advanced Lobby Authentication Features
- * 
- * These tests verify the complete host-client interaction workflows for:
- * - Password authentication (correct/incorrect passwords)
- * - Waiting room (PENDING state, approval, rejection)
- * - Player kick functionality
- * - Error handling and state transitions
- */
 
 describe('Lobby Authentication Integration Tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-
-        // Reset state between tests
-        const peer = usePeer();
-        peer.gameState.players = [];
-        peer.gameState.pendingPlayers = [];
-        peer.gameState.phase = 'LOBBY';
-        peer.gameState.roomCode = '';
-        peer.gameState.settings.requirePassword = false;
-        peer.gameState.settings.password = '';
-        peer.gameState.settings.enableWaitingRoom = false;
-        peer.isHost.value = false;
-        peer.myId.value = '';
-        peer.isPending.value = false;
-        peer.connectionError.value = '';
+        // Use the imported helper to reset state
+        resetState();
     });
 
     describe('Password Authentication Workflow', () => {
@@ -401,5 +399,116 @@ describe('Lobby Authentication Integration Tests', () => {
 
             expect(client.connectionError.value).toBe('');
         });
+    });
+});
+
+describe('Connection Modal Logic', () => {
+    it('shows connection modal and times out', async () => {
+        vi.useFakeTimers();
+        const wrapper = mount(Lobby);
+
+        // Join Game Flow
+        await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
+        await wrapper.find('[data-testid="join-name-input"]').setValue('Joiner');
+        await wrapper.find('[data-testid="join-code-input"]').setValue('XYZ123');
+
+        await wrapper.find('[data-testid="join-connect-btn"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain('CONNECTING');
+
+        // Advance time > 5s
+        await vi.advanceTimersByTimeAsync(5000);
+
+        // Expect timeout error
+        expect(wrapper.text()).not.toContain('CONNECTING');
+        expect(wrapper.text()).toContain('Connection timed out');
+
+        vi.useRealTimers();
+    });
+
+    it('closes connection modal when entering Waiting Room (PENDING)', async () => {
+        vi.useFakeTimers();
+        const wrapper = mount(Lobby);
+
+        await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
+        await wrapper.find('[data-testid="join-name-input"]').setValue('PendingUser');
+        await wrapper.find('[data-testid="join-code-input"]').setValue('WAIT12');
+
+        await wrapper.find('[data-testid="join-connect-btn"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain('CONNECTING');
+
+        // Simulate "PENDING" signal from usePeer
+        const { isPending } = usePeer();
+        isPending.value = true;
+        await wrapper.vm.$nextTick();
+
+        // Modal should be gone
+        expect(wrapper.text()).not.toContain('CONNECTING');
+        // Should show pending screen
+        expect(wrapper.text()).toContain('Waiting for Approval');
+
+        vi.useRealTimers();
+    });
+
+    it('closes connection modal on explicit connection error', async () => {
+        // Force reset state to prevent leakage from previous tests
+        const peer = usePeer();
+        peer.isPending.value = false;
+        peer.gameState.roomCode = '';
+        peer.connectionError.value = '';
+
+        const wrapper = mount(Lobby);
+        await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        await wrapper.find('[data-testid="join-name-input"]').setValue('User');
+        await wrapper.find('[data-testid="join-code-input"]').setValue('ERR123');
+        await wrapper.find('[data-testid="join-connect-btn"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain('CONNECTING');
+
+        const { connectionError } = usePeer();
+        connectionError.value = 'Lobby not found';
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).not.toContain('CONNECTING');
+        expect(wrapper.text()).toContain('Lobby not found');
+    });
+
+    it('canceling pending state returns to Join Form', async () => {
+        // Force reset state to prevent leakage from previous tests
+        const peer = usePeer();
+        peer.isPending.value = false;
+        peer.gameState.roomCode = '';
+        peer.connectionError.value = '';
+
+        const wrapper = mount(Lobby);
+
+        // Setup Pending State
+        await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        await wrapper.find('[data-testid="join-name-input"]').setValue('PendingUser');
+        await wrapper.find('[data-testid="join-code-input"]').setValue('WAIT12');
+        await wrapper.find('[data-testid="join-connect-btn"]').trigger('click');
+
+        // const peer = usePeer(); // Already got peer above
+        peer.isPending.value = true;
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain('Waiting for Approval');
+
+        // Click Cancel
+        const cancelBtn = wrapper.findAll('button').find(b => b.text() === 'Cancel');
+        await cancelBtn.trigger('click');
+        await wrapper.vm.$nextTick();
+
+        // Should be back to JOIN FORM
+        expect(wrapper.text()).toContain('JOIN LOBBY');
+        expect(peer.isPending.value).toBe(false);
     });
 });

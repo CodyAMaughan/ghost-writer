@@ -85,6 +85,19 @@ const verdict = computed(() => {
       v-if="currentSubmission"
       class="w-full max-w-2xl relative my-auto h-[600px] flex flex-col"
     >
+      <!-- Persistent Prompt -->
+      <div class="text-center mb-4 animate-fade-in-down">
+        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">
+          ORIGINAL PROMPT
+        </p>
+        <h2
+          class="text-lg md:text-xl text-white font-bold opacity-90 line-clamp-2"
+          title="Show full prompt"
+        >
+          "{{ gameState.prompt }}"
+        </h2>
+      </div>
+
       <!-- MAIN CARD CONTAINER -->
       <div
         class="flex-grow flex flex-col rounded-xl shadow-2xl overflow-hidden border-2 transition-all duration-500"

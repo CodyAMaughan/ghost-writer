@@ -26,3 +26,10 @@ description: Design and Architect the details of implementing a new feature or c
     * **## Proposed Implementation:** List of files to create/modify.
     * **## Testing Strategy:** specific test cases to write.
 3.  **Review:** Ask user to confirm the Spec is ready for implementation.
+
+## Step 4: User Feedback
+1.  Ask the user for feedback on the spec file and iterate as needed
+
+## CRITICAL
+
+* You will not be implementing the feature at this stage, just iterating on the design and architecture

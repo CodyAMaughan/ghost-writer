@@ -88,8 +88,10 @@ vi.mock('../../../src/composables/usePeer', () => ({
         // However, usually checking `player.isHost` or matching IDs is robust.
         // Let's assume property is sufficient or the component reads `gameState.hostId`.
         // Actually LOBBY uses `const { isHost } = usePeer()`.
-        // So we need to return `isHost`. Let's assume true for most integration tests unless specified.
+        // So we need to return `isHost`. Let's assume true for most integration tests unless qspecified.
         isHost: true,
+        connectionError: ref(''),
+        isPending: ref(false), // Also adding isPending just in case, as Lobby uses it
         ...mockActions
     })
 }));

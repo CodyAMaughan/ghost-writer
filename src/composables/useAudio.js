@@ -16,6 +16,7 @@ let currentMusicKey = null;
 // Initial Sync
 Howler.volume(masterVolume.value);
 Howler.mute(isMuted.value);
+Howler.autoSuspend = false; // Try to keep audio alive in background
 
 export function useAudio() {
 
@@ -75,9 +76,11 @@ export function useAudio() {
 
         // Fade out old
         if (currentMusic) {
-            currentMusic.fade(currentMusic.volume(), 0, 1000);
-            const old = currentMusic;
-            setTimeout(() => old.stop(), 1000);
+            const oldSound = currentMusic; // Capture local ref
+            oldSound.fade(oldSound.volume(), 0, 1000);
+            setTimeout(() => {
+                oldSound.stop();
+            }, 1000);
         }
 
         const def = SOUNDS[key];
@@ -95,17 +98,25 @@ export function useAudio() {
         // Fade In
         const targetVol = (def.volume || 1) * musicVolume.value;
         sound.volume(0);
+
+        // Ensure not suspended?
+        if (Howler.ctx.state === 'suspended') Howler.ctx.resume();
+
         sound.play();
         sound.fade(0, targetVol, 1000);
     };
 
     const stopMusic = () => {
         if (currentMusic) {
-            currentMusic.fade(currentMusic.volume(), 0, 1000);
+            const soundToStop = currentMusic; // Capture local ref!
+            soundToStop.fade(soundToStop.volume(), 0, 1000);
+
+            // We clear global currentMusic immediately to allow new music to take over
+            currentMusic = null;
+            currentMusicKey = null;
+
             setTimeout(() => {
-                currentMusic.stop();
-                currentMusic = null;
-                currentMusicKey = null;
+                soundToStop.stop();
             }, 1000);
         }
     };
@@ -144,6 +155,36 @@ export function useAudio() {
                     target = target.parentElement;
                 }
             });
+
+            // HANDLE VISIBILITY CHANGE (Resume Audio if suspended)
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    if (Howler.ctx && Howler.ctx.state === 'suspended') {
+                        console.log('[Audio] Resuming context on visibility change');
+                        Howler.ctx.resume();
+                    }
+                    // Also validate appropriate music is playing
+                    // We can't easily access gameState here as it causes circular dependency if we import usePeer
+                    // But the watchers in components should trigger if state changes.
+                    // If state didn't change, we just want current audio to resume.
+                }
+            });
+        }
+    };
+
+    const validateMusic = (phase, theme) => {
+        // Current logic: Always use theme music
+        // If we add specific phase music later, we can switch here
+        const targetKey = 'BGM_' + (theme || 'viral').toUpperCase();
+
+        if (currentMusicKey !== targetKey) {
+            console.log(`[Audio Recovery] Switching ${currentMusicKey} -> ${targetKey}`);
+            playMusic(targetKey);
+        } else if (currentMusic && !currentMusic.playing()) {
+            // Only auto-restart if not manually stopped/paused? 
+            // For now, assume BG music should always be playing if we are in game.
+            console.log(`[Audio Recovery] Restarting ${targetKey}`);
+            currentMusic.play();
         }
     };
 
@@ -156,6 +197,7 @@ export function useAudio() {
         playMusic,
         stopMusic,
         syncVolumes,
+        validateMusic,
         init
     };
 }

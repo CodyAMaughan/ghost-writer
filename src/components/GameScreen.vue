@@ -10,8 +10,29 @@ import PhaseReveal from './phases/PhaseReveal.vue';
 import PhaseFinish from './phases/PhaseFinish.vue';
 import PhaseTransition from './PhaseTransition.vue';
 
-const { gameState } = usePeer();
+const { gameState, isHost, returnToLobby, leaveGame } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+
+const confirmAbort = () => {
+    if (confirm("Are you sure you want to abort the game and return to lobby? All progress will be lost.")) {
+        returnToLobby();
+    }
+};
+
+const confirmLeave = () => {
+    if (confirm("Are you sure you want to leave the game? You will not be able to rejoin easily.")) {
+        // We should probably add a logic to just refresh page or proper leave
+        leaveGame();
+        // Since GameScreen Unmounts, we might need to change mode?
+        // Actually leaveGame() should trigger state changes that might cause App to switch to Lobby?
+        // App.vue renders Lobby if phase === 'LOBBY'.
+        // If client calls leaveGame(), does phase locally switch?
+        // usePeer.js leaveGame currently just does some clean up. 
+        // We might need to manually set window.location.reload() for a clean break for clients,
+        // or ensure phase becomes 'LOBBY' locally.
+        window.location.reload(); 
+    }
+};
 
 const activePhase = ref(gameState.phase);
 const showTransition = ref(false);
@@ -48,7 +69,7 @@ watch(showTransition, (val) => {
 const timer = computed(() => gameState.timer);
 
 // AUDIO LOGIC
-const { playSfx, playMusic } = useAudio();
+const { playSfx, playMusic, validateMusic } = useAudio();
 const playThemeMusic = () => {
     const key = 'BGM_' + (gameState.currentTheme || 'viral').toUpperCase();
     playMusic(key);
@@ -62,12 +83,12 @@ watch(() => gameState.currentTheme, () => {
     playThemeMusic();
 });
 
-watch(timer, (val) => {
-    if (activePhase.value === 'INPUT' && val > 0 && val <= 15) {
-        if (val <= 5) playSfx('TIMER_URGENT');
-        else playSfx('TIMER_TICK');
-    }
+// Robust Audio Recovery on Phase Change
+watch(() => gameState.phase, (newPhase) => {
+    validateMusic(newPhase, gameState.currentTheme);
 });
+
+// Timer audio logic moved to PhaseInput to respect local submission state
 
 </script>
 
@@ -78,8 +99,26 @@ watch(timer, (val) => {
   >
     <!-- TOP BAR -->
     <div class="w-full flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-      <div class="text-xs text-slate-500">
-        ROUND <span class="text-white text-lg font-bold">{{ gameState.round }}/{{ gameState.maxRounds }}</span>
+      <div class="flex items-center gap-4 text-xs text-slate-500">
+        <div>ROUND <span class="text-white text-lg font-bold">{{ gameState.round }}/{{ gameState.maxRounds }}</span></div>
+        
+        <!-- HOST ABORT -->
+        <button 
+            v-if="isHost"
+            @click="confirmAbort"
+            class="text-red-500/50 hover:text-red-500 font-bold uppercase tracking-wider text-[10px] border border-red-500/20 hover:border-red-500 px-2 py-1 rounded transition-colors"
+        >
+            Abort
+        </button>
+
+         <!-- PEER LEAVE -->
+        <button 
+            v-if="!isHost"
+            @click="confirmLeave"
+            class="text-red-500/50 hover:text-red-500 font-bold uppercase tracking-wider text-[10px] border border-red-500/20 hover:border-red-500 px-2 py-1 rounded transition-colors"
+        >
+            Leave
+        </button>
       </div>
       <div
         v-if="activePhase === 'INPUT'"

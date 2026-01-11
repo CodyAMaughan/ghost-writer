@@ -1,5 +1,6 @@
 <script setup>
 import { useAudio } from '../composables/useAudio';
+import { useStreamerMode } from '../composables/useStreamerMode';
 import { X, Volume2, VolumeX, Music, Speaker, Settings } from 'lucide-vue-next';
 
 defineProps({
@@ -11,6 +12,7 @@ defineProps({
 defineEmits(['close']);
 
 const { masterVolume, musicVolume, sfxVolume, isMuted, syncVolumes, playSfx } = useAudio();
+const { isStreamerMode } = useStreamerMode();
 
 const update = () => {
     syncVolumes();
@@ -48,6 +50,32 @@ const testSfx = () => {
 
       <!-- Body -->
       <div class="p-6 space-y-8">
+        <!-- Gameplay Settings -->
+        <div class="space-y-4 border-b border-slate-700/50 pb-6">
+          <h3 class="text-xs uppercase text-slate-500 font-bold">
+            Gameplay & Display
+          </h3>
+          
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm text-white font-bold flex items-center gap-2">
+                Streamer Mode
+              </div>
+              <p class="text-[10px] text-slate-400">
+                Hide sensitive info like room codes.
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input 
+                v-model="isStreamerMode" 
+                type="checkbox" 
+                class="sr-only peer"
+                data-testid="streamer-mode-toggle"
+              >
+              <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600" />
+            </label>
+          </div>
+        </div>
         <!-- Master -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">

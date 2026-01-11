@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { usePeer } from '../../composables/usePeer';
+import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
 import { Ghost, Brain, CheckCircle, UserCog } from 'lucide-vue-next';
 import CustomAgentEditor from '../CustomAgentEditor.vue';
@@ -8,6 +9,9 @@ import CustomAgentEditor from '../CustomAgentEditor.vue';
 const { gameState, submitAnswer, getGhostOptions } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 const ghostAgents = computed(() => theme.value.agents);
+
+// AUDIO
+const { playSfx } = useAudio();
 
 // Local State
 const manualText = ref('');
@@ -19,22 +23,19 @@ const isLoadingGhost = ref(false);
 const hasSubmitted = ref(false);
 const ghostGenerationFailed = ref(false);
 
-// Watch Timer for Auto-Submit
-watch(() => gameState.timer, (newVal) => {
-    if (newVal === 0 && !hasSubmitted.value) {
+// Watch Timer for Auto-Submit & Sounds
+watch(() => gameState.timer, (val) => {
+    if (val === 0 && !hasSubmitted.value) {
         // Auto-submit whatever we have, or generic placeholder if empty
-        // We set hasSubmitted to true immediately to prevent double firing if we manually submit same tick
         const text = manualText.value.trim() || "Time expired...";
-        submitAnswer(text, 'AI', 'autopilot'); // Mark as AI source if forced? Or Human source if manual text exists?
-        // Logic: if manualText exists, it's HUMAN even if forced. If empty, it's AI filler.
-        // Actually for simplicity, let's tag based on if we had text.
-        // But user constraint said "Auto-submits Ghost answer... expect random text, source='AI', and random agent ID".
-        // The test explicitly expects 'AI'. So I will default to 'AI' behavior here to satisfy the test logic provided.
-        // Although arguably if I typed "Hello", it should send "Hello" as Human.
-        // I will stick to what ensures the test passes: "Auto-submits Ghost answer". 
-        // This likely implies if the USER didn't submit, the System does using a "Ghost".
-        
+        submitAnswer(text, 'AI', 'autopilot');
         hasSubmitted.value = true;
+    }
+
+    // Sound Logic (Only if not submitted)
+    if (!hasSubmitted.value && val > 0) {
+        if (val <= 5) playSfx('TIMER_URGENT');
+        else if (val <= 10) playSfx('TIMER_TICK');
     }
 });
 

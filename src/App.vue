@@ -6,11 +6,14 @@ import GameScreen from './components/GameScreen.vue';
 import RulesModal from './components/RulesModal.vue';
 import CustomAgentEditor from './components/CustomAgentEditor.vue';
 import SettingsModal from './components/SettingsModal.vue';
-import { HelpCircle, UserCog, Share2, Settings } from 'lucide-vue-next';
+import { HelpCircle, UserCog, Share2, Settings, EyeOff } from 'lucide-vue-next';
+import DiscordIcon from './components/icons/DiscordIcon.vue';
 import { THEMES } from './config/themes';
 import { useAudio } from './composables/useAudio';
+import { useStreamerMode } from './composables/useStreamerMode';
 
 const { gameState, isHost, returnToLobby } = usePeer();
+const { isStreamerMode } = useStreamerMode();
 const { init: initAudio } = useAudio();
 const showRules = ref(false);
 const showCustom = ref(false);
@@ -116,10 +119,22 @@ onMounted(() => {
             v-if="gameState.roomCode"
             class="text-xs uppercase tracking-widest text-slate-500"
           >
-            Game Lobby: <span
+            Game Lobby: 
+            <span
+              v-if="!isStreamerMode"
               class="font-bold"
               :class="theme.colors.accent"
+              data-testid="header-room-code"
             >{{ gameState.roomCode }}</span>
+            <span
+              v-else
+              class="font-bold flex items-center gap-1"
+              :class="theme.colors.accent"
+              data-testid="header-room-code-masked"
+            >
+              <EyeOff class="w-3 h-3" />
+              HIDDEN
+            </span>
           </div>
             
           <!-- Icons -->
@@ -186,20 +201,22 @@ onMounted(() => {
               </button>
             </div>
 
+            <!-- Discord Invite -->
+            <a
+              href="https://discord.gg/nVSSqR8gAJ"
+              target="_blank"
+              class="text-slate-500 hover:text-[#5865F2] transition-colors relative z-50 flex items-center"
+              title="Join us on Discord"
+            >
+              <DiscordIcon class="w-6 h-6" />
+            </a>
+
             <button
               class="text-slate-500 hover:text-purple-400 transition-colors"
               title="Edit Custom Personality"
               @click="showCustom = true"
             >
               <UserCog class="w-6 h-6" />
-            </button>
-            <button 
-              v-if="isHost && gameState.phase !== 'LOBBY'" 
-              class="text-slate-500 hover:text-red-400 transition-colors mr-2"
-              title="Abort Game and Return to Lobby" 
-              @click="confirmAbort"
-            >
-              <span class="text-sm font-bold">ABORT GAME</span>
             </button>
             <button
               class="text-slate-500 hover:text-blue-400 transition-colors"

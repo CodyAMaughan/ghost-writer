@@ -355,9 +355,24 @@ export function usePeer() {
     };
 
     const removePlayer = (id) => {
+        const p = gameState.players.find(x => x.id === id);
+        if (p) console.log(`Removing player ${id}:`, p.name);
+
         gameState.players = gameState.players.filter(p => p.id !== id);
         connMap.delete(id);
-        broadcastState();
+
+        // Also remove from pending if applicable
+        gameState.pendingPlayers = gameState.pendingPlayers.filter(p => p.id !== id);
+
+        // If in active game, we might need to perform checks
+        if (gameState.phase !== 'LOBBY' && gameState.phase !== 'FINISH') {
+            broadcastState();
+            // Check if this unblocks the round
+            checkVotingComplete();
+            checkRoundComplete();
+        } else {
+            broadcastState();
+        }
     };
 
     const generateNewPrompt = async () => {
@@ -595,6 +610,7 @@ export function usePeer() {
         connMap.clear();
         isHost.value = false;
         myId.value = '';
+        isPending.value = false;
         // We keep myName.value for convenience
     };
 
