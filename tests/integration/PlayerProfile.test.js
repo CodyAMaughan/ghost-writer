@@ -26,7 +26,7 @@ const resetState = () => {
 
     try {
         leaveGame();
-    } catch (e) {
+    } catch {
         // Ignore errors during cleanup
     }
 
@@ -70,7 +70,7 @@ describe('Player Profile Integration', () => {
 
     describe('State Clearing on New Lobby', () => {
         it('initHost clears stale players from previous session', async () => {
-            const { initHost, gameState, myId, leaveGame } = usePeer();
+            const { initHost, gameState, myId } = usePeer();
 
             // First lobby
             initHost('FirstHost', 'gemini', '');
@@ -241,7 +241,7 @@ describe('Player Profile Integration', () => {
         });
 
         it('Avatar update rejected if already taken by another player', async () => {
-            const { initHost, gameState, updateAvatar, myId } = usePeer();
+            const { initHost, gameState, myId } = usePeer();
 
             initHost('HostUser', 'gemini', '');
             await vi.advanceTimersByTimeAsync(100);

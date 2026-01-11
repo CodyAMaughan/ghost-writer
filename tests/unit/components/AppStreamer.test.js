@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import App from '../../../src/App.vue';
 import { useStreamerMode } from '../../../src/composables/useStreamerMode';
-import { usePeer } from '../../../src/composables/usePeer';
+
 
 // Mock dependencies
 vi.mock('../../../src/composables/usePeer', () => {

@@ -3,9 +3,7 @@ import { ref, computed } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { THEMES } from '../../config/themes';
 import { User, Zap, Lock, CheckCircle } from 'lucide-vue-next';
-import AvatarIcon from '../icons/AvatarIcon.vue';
 import Nameplate from '../Nameplate.vue';
-import { AVATARS } from '../../config/avatars';
 
 const { gameState, myId, submitVote } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
@@ -27,15 +25,7 @@ const lockVotes = () => {
     votesLocked.value = true;
 };
 
-const getAvatarId = (playerId) => {
-    return gameState.players.find(p => p.id === playerId)?.avatarId || 0;
-};
 
-const getAvatarColor = (playerId) => {
-    const id = getAvatarId(playerId);
-    const av = AVATARS.find(a => a.id === id) || AVATARS[0];
-    return av.color; // Contains text-color class
-};
 </script>
 
 <template>
@@ -65,8 +55,8 @@ const getAvatarColor = (playerId) => {
         <div class="flex-grow flex flex-col items-center md:items-start text-center md:text-left">
           <div class="flex items-center gap-2 mb-2">
             <Nameplate
-                :player-id="sub.authorId"
-                size="sm"
+              :player-id="sub.authorId"
+              size="sm"
             />
             <span
               v-if="sub.authorId === myId"

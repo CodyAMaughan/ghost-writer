@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { AVATARS } from '../../config/avatars';
 import AvatarIcon from '../icons/AvatarIcon.vue';
@@ -28,7 +28,7 @@ const close = () => {
 </script>
 
 <template>
-    <Teleport to="body">
+  <Teleport to="body">
     <div
       v-if="modelValue"
       class="fixed inset-0 bg-black z-[100] flex items-center justify-center p-4"
@@ -66,5 +66,5 @@ const close = () => {
         </button>
       </div>
     </div>
-    </Teleport>
+  </Teleport>
 </template>

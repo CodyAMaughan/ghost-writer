@@ -135,7 +135,7 @@ describe('System Robustness & Audio Integration', () => {
     });
 
     it('Audio Transitions: playMusic calls Howl fade and stop', () => {
-        const { playMusic, stopMusic } = useAudio();
+        const { playMusic } = useAudio();
         // Since we mocked Howl, we can't easily check internal state, 
         // but we can check if the Mock's methods were called.
 

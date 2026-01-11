@@ -57,7 +57,7 @@ describe('AI Logic Integration', () => {
     });
 
     it('Host processing REQUEST_GHOST calls fetchAI and returns GHOST_RESPONSE', async () => {
-        const { initHost, gameState } = usePeer();
+        const { initHost } = usePeer();
         initHost('Host', 'gemini', 'sk-test');
         await vi.advanceTimersByTimeAsync(100);
 

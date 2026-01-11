@@ -107,7 +107,6 @@ describe('Lobby - Streamer Mode', () => {
     it('hides/blurs QR code when streamer mode on', async () => {
         const wrapper = mount(Lobby);
         await navigateToLobby(wrapper);
-        const { isStreamerMode } = useStreamerMode();
 
         // QR Code is currently commented out in the component, so it should NOT exist
         // logic below updated to reflect that, or we can skip/remove this test block.

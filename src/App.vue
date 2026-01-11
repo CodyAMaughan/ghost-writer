@@ -12,7 +12,7 @@ import { THEMES } from './config/themes';
 import { useAudio } from './composables/useAudio';
 import { useStreamerMode } from './composables/useStreamerMode';
 
-const { gameState, isHost, returnToLobby } = usePeer();
+const { gameState } = usePeer();
 const { isStreamerMode } = useStreamerMode();
 const { init: initAudio } = useAudio();
 const showRules = ref(false);
@@ -52,11 +52,6 @@ const shareTo = (platform) => {
     shareMenuOpen.value = false;
 };
 
-const confirmAbort = () => {
-    if (confirm("Are you sure you want to abort the game and return to lobby? All progress will be lost.")) {
-        returnToLobby();
-    }
-};
 
 // Wake Lock to prevent sleep
 let wakeLock = null;

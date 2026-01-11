@@ -97,14 +97,17 @@ const handleClick = () => {
     @click="handleClick"
   >
     <!-- Avatar -->
-    <div @click="handleAvatarClick" :class="isClickable ? 'cursor-pointer' : ''">
-        <AvatarIcon
+    <div
+      :class="isClickable ? 'cursor-pointer' : ''"
+      @click="handleAvatarClick"
+    >
+      <AvatarIcon
         v-if="showAvatar"
         :avatar-id="player.avatarId"
         :size="sizeClasses.icon"
         :show-border="true"
         data-testid="nameplate-avatar"
-        />
+      />
     </div>
 
     <!-- Text Container -->
@@ -116,8 +119,8 @@ const handleClick = () => {
       <div 
         v-if="showName"
         class="flex items-center gap-2"
-        @click="handleNameClick"
         :class="isClickable ? 'cursor-pointer' : ''"
+        @click="handleNameClick"
       >
         <span
           :class="[
@@ -147,8 +150,8 @@ const handleClick = () => {
 
     <!-- Avatar Picker Modal -->
     <AvatarPickerModal
-        v-if="isInteractable && isOwnNameplate"
-        v-model="showAvatarPicker"
+      v-if="isInteractable && isOwnNameplate"
+      v-model="showAvatarPicker"
     />
   </div>
 </template>

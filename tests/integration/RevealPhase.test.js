@@ -20,7 +20,7 @@ vi.mock('../../src/composables/useAudio', () => ({
 const resetState = () => {
     const { gameState, leaveGame, isHost, myId, connectionError, isPending } = usePeer();
 
-    try { leaveGame(); } catch (e) { }
+    try { leaveGame(); } catch { }
 
     // Force reset state
     gameState.phase = 'REVEAL';

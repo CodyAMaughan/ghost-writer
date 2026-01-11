@@ -69,7 +69,7 @@ watch(showTransition, (val) => {
 const timer = computed(() => gameState.timer);
 
 // AUDIO LOGIC
-const { playSfx, playMusic, validateMusic } = useAudio();
+const { playMusic, validateMusic } = useAudio();
 const playThemeMusic = () => {
     const key = 'BGM_' + (gameState.currentTheme || 'viral').toUpperCase();
     playMusic(key);

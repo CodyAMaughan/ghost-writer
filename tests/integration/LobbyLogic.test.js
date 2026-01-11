@@ -27,7 +27,7 @@ const resetState = () => {
     // Attempt to close existing connections cleanly
     try {
         leaveGame();
-    } catch (e) {
+    } catch {
         // Ignore errors during cleanup
     }
 

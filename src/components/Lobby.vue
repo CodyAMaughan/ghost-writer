@@ -5,23 +5,17 @@ import { useAudio } from '../composables/useAudio';
 import { Users, Check, X, Link, Share, Server, LogIn, Key, Play, Trash2, EyeOff, Wifi } from 'lucide-vue-next';
 import AvatarIcon from './icons/AvatarIcon.vue';
 import Nameplate from './Nameplate.vue';
-import { AVATARS } from '../config/avatars';
+
 import { THEMES } from '../config/themes';
 import ApiKeyHelpModal from './ApiKeyHelpModal.vue';
 import ProfileModal from './modals/ProfileModal.vue';
-import QrcodeVue from 'qrcode.vue';
+
 import { useStreamerMode } from '../composables/useStreamerMode';
 
-const { initHost, joinGame, gameState, myId, startGame, isHost, leaveGame, setTheme, updateAvatar, 
+const { initHost, joinGame, gameState, myId, startGame, isHost, leaveGame, setTheme, 
         approvePendingPlayer, rejectPendingPlayer, kickPlayer, connectionError, isPending } = usePeer();
 const { isStreamerMode } = useStreamerMode();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
-const joinUrl = computed(() => {
-    if (typeof window !== 'undefined') {
-        return `${window.location.origin}?room=${gameState.roomCode}`;
-    }
-    return '';
-});
 
 const mode = ref('LANDING'); // LANDING, HOSTING, JOINING, WAITING
 const isConnecting = ref(false); // Track connection status to prevent multiple clicks
@@ -736,11 +730,11 @@ const handleNameClick = (playerId) => {
              
             <!-- Nameplate Component -->
             <Nameplate
-                :player-id="player.id"
-                layout="vertical"
-                size="2xl"
-                :is-interactable="true"
-                @click-name="handleNameClick(player.id)"
+              :player-id="player.id"
+              layout="vertical"
+              size="2xl"
+              :is-interactable="true"
+              @click-name="handleNameClick(player.id)"
             />
           </div>
           <!-- Slots -->
@@ -897,8 +891,6 @@ const handleNameClick = (playerId) => {
       v-if="showKeyHelp"
       @close="showKeyHelp = false"
     />
-    
-
   </div>
 
   <!-- CONNECTING MODAL -->

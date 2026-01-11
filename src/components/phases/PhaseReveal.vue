@@ -4,10 +4,7 @@ import { usePeer } from '../../composables/usePeer';
 import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
 import { CheckCircle, XCircle, MinusCircle } from 'lucide-vue-next';
-import AvatarIcon from '../icons/AvatarIcon.vue';
 import Nameplate from '../Nameplate.vue';
-import { AVATARS } from '../../config/avatars';
-import { getAvatarStyle } from '../../utils/avatarStyles';
 
 const { gameState, isHost, myId, nextRevealStep } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
@@ -43,21 +40,6 @@ const myVote = computed(() => {
 
 const isMySubmission = computed(() => currentSubmission.value?.authorId === myId.value);
 
-const authorName = computed(() => {
-    if (!currentSubmission.value) return 'Unknown';
-    return gameState.players.find(p => p.id === currentSubmission.value.authorId)?.name || 'Unknown';
-});
-
-const getAvatarId = () => {
-    if (!currentSubmission.value) return 0;
-    return gameState.players.find(p => p.id === currentSubmission.value.authorId)?.avatarId || 0;
-};
-
-const getAuthorStyle = () => {
-    const id = getAvatarId();
-    const av = AVATARS.find(a => a.id === id) || AVATARS[0];
-    return getAvatarStyle(av.theme);
-};
 
 // AUDIO TRIGGERS
 const { playSfx } = useAudio();
@@ -113,6 +95,7 @@ const verdict = computed(() => {
             enter-to-class="opacity-100 translate-y-0 scale-100"
           >
             <div 
+              v-if="step >= 0"
               class="flex flex-col items-center"
             >
               <Nameplate 
