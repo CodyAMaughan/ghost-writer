@@ -42,8 +42,8 @@ export class MockPeer {
     }
 
     // Call this from your test to simulate an incoming player!
-    simulateIncomingConnection(metadata = {}) {
-        const conn = new MockConnection('REMOTE_PLAYER');
+    simulateIncomingConnection(peerId = 'REMOTE_PLAYER', metadata = {}) {
+        const conn = new MockConnection(peerId);
         conn.metadata = metadata;
         this.emit('connection', conn);
         // Simulate the connection opening instantly

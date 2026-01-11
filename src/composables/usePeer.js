@@ -262,6 +262,11 @@ export function usePeer() {
                         .then(options => {
                             const conn = connMap.get(senderId);
                             if (conn) conn.send({ type: 'GHOST_OPTIONS', payload: { options } });
+                        })
+                        .catch(err => {
+                            console.error("Ghost Gen Error", err);
+                            const conn = connMap.get(senderId);
+                            if (conn) conn.send({ type: 'GHOST_ERROR', payload: { message: err.message || "Failed to generate ghost" } });
                         });
                 }
                 break;
