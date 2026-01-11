@@ -66,7 +66,7 @@ const getAvatarColor = (playerId) => {
           <div class="flex items-center gap-2 mb-2">
             <Nameplate
                 :player-id="sub.authorId"
-                variant="default"
+                size="sm"
             />
             <span
               v-if="sub.authorId === myId"

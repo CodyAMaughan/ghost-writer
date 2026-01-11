@@ -113,7 +113,6 @@ const verdict = computed(() => {
             enter-to-class="opacity-100 translate-y-0 scale-100"
           >
             <div 
-              v-if="showAuthor" 
               class="flex flex-col items-center"
             >
               <Nameplate 

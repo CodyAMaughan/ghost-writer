@@ -7,11 +7,15 @@ import AvatarIcon from './icons/AvatarIcon.vue';
 
 const props = defineProps({
     playerId: { type: String, required: true },
+    displayName: { type: String, default: null }, // Override name (e.g. for AI)
+    displayAvatarId: { type: [String, Number], default: null }, // Override avatar
     layout: { type: String, default: 'horizontal' }, // 'horizontal', 'vertical'
-    size: { type: String, default: 'sm' }, // 'sm', 'md', 'lg', 'xl'
+    size: { type: String, default: 'sm' }, // 'sm', 'md', 'lg', 'xl', '2xl'
     isInteractable: { type: Boolean, default: false },
     showYouBadge: { type: Boolean, default: false },
-    showAvatar: { type: Boolean, default: true }
+    showYouBadge: { type: Boolean, default: false },
+    showAvatar: { type: Boolean, default: true },
+    showName: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['click', 'click-avatar', 'click-name']);
@@ -19,10 +23,20 @@ const emit = defineEmits(['click', 'click-avatar', 'click-name']);
 const { gameState, myId } = usePeer();
 
 const player = computed(() => {
+    // If overrides are provided, use them
+    if (props.displayName) {
+        return {
+            id: props.playerId,
+            name: props.displayName,
+            avatarId: props.displayAvatarId !== null ? props.displayAvatarId : 0
+        };
+    }
+    
+    // Otherwise try to find real player
     return gameState.players.find(p => p.id === props.playerId) || { 
         id: props.playerId, 
         name: 'Unknown', 
-        avatarId: 0 
+        avatarId: props.displayAvatarId !== null ? props.displayAvatarId : 0
     };
 });
 
@@ -95,6 +109,7 @@ const handleClick = () => {
 
       <!-- Name with themed styling -->
       <div 
+        v-if="showName"
         class="flex items-center gap-2"
         @click="handleNameClick"
         :class="isOwnNameplate ? 'cursor-pointer' : ''"
