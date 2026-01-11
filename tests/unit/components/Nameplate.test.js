@@ -32,16 +32,16 @@ describe('Nameplate.vue', () => {
         expect(wrapper.find('[data-testid="nameplate-avatar"]').exists()).toBe(true);
     });
 
-    it('renders minimal variant without avatar', () => {
+    it('renders vertical variant', () => {
         const wrapper = mount(Nameplate, {
             props: {
-                playerId: 'player1',
-                variant: 'minimal'
+                playerId: 'host-id',
+                layout: 'vertical'
             }
         });
 
-        expect(wrapper.text()).toContain('Alice');
-        expect(wrapper.find('[data-testid="nameplate-avatar"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="nameplate-container"]').classes()).toContain('flex-col');
+        expect(wrapper.find('[data-testid="nameplate-avatar"]').classes()).toContain('w-8'); // Default size is sm (w-8) unless changed
     });
 
     it('emits click event when isInteractable and clicking own nameplate', async () => {

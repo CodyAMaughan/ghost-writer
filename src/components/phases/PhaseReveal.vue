@@ -5,6 +5,7 @@ import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
 import { CheckCircle, XCircle, MinusCircle } from 'lucide-vue-next';
 import AvatarIcon from '../icons/AvatarIcon.vue';
+import Nameplate from '../Nameplate.vue';
 import { AVATARS } from '../../config/avatars';
 import { getAvatarStyle } from '../../utils/avatarStyles';
 
@@ -106,26 +107,26 @@ const verdict = computed(() => {
         <!-- TOP 2/3: Author, Quote, Votes, Verdict -->
         <div class="relative flex-[2] border-b border-white/10 p-8 flex flex-col gap-6 items-center text-center">
           <!-- Row 1: Author (Visible Step 0) -->
-          <div class="w-full flex items-center justify-center gap-4 animate-fade-in-down">
-            <!-- Large Avatar -->
-            <AvatarIcon
-              :avatar-id="getAvatarId()"
-              size="w-[60px] h-[60px]"
-              :show-border="true"
-            />
-            <div class="text-left">
-              <p class="text-[10px] text-slate-500 uppercase tracking-widest leading-none mb-1">
-                AUTHOR
-              </p>
-              <p
-                class="text-2xl font-black leading-none"
-                :class="getAuthorStyle().text"
-                :style="{ textShadow: `0 0 10px ${getAuthorStyle().glow}` }"
+          <transition
+            enter-active-class="transition-all duration-1000 delay-300 ease-out"
+            enter-from-class="opacity-0 translate-y-8 scale-90"
+            enter-to-class="opacity-100 translate-y-0 scale-100"
+          >
+            <div 
+              v-if="showAuthor" 
+              class="flex flex-col items-center"
+            >
+              <Nameplate 
+                :player-id="currentSubmission.authorId" 
+                layout="vertical" 
+                size="xl"
               >
-                {{ authorName }}
-              </p>
+                <template #label-top>
+                  <span class="text-sm font-bold tracking-widest text-slate-500 mb-2 uppercase">Author</span>
+                </template>
+              </Nameplate>
             </div>
-          </div>
+          </transition>
 
           <!-- Row 2: Quote (Visible Step 0) -->
           <div class="flex-grow flex items-center justify-center w-full">

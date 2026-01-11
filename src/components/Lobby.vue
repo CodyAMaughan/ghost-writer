@@ -4,6 +4,7 @@ import { usePeer } from '../composables/usePeer';
 import { useAudio } from '../composables/useAudio';
 import { Users, Check, X, Link, Share, Server, LogIn, Key, Play, Trash2, EyeOff, Wifi } from 'lucide-vue-next';
 import AvatarIcon from './icons/AvatarIcon.vue';
+import Nameplate from './Nameplate.vue';
 import { AVATARS } from '../config/avatars';
 import { THEMES } from '../config/themes';
 import ApiKeyHelpModal from './ApiKeyHelpModal.vue';
@@ -748,28 +749,15 @@ const handleNameClick = (playerId) => {
               <Trash2 class="w-3 h-3 text-red-300" />
             </button>
              
-            <!-- Avatar - Click opens quick picker for own avatar -->
-            <div
-              :class="player.id === myId ? 'cursor-pointer' : ''" 
-              @click="handleAvatarClick(player.id)"
-            >
-              <AvatarIcon
-                :avatar-id="player.avatarId"
-                size="w-20 h-20"
-                :show-border="true"
-                :is-clickable="player.id === myId"
-              />
-            </div>
-
-            <!-- Name - Click opens full profile modal for own name -->
-            <span
-              :class="[
-                'font-bold truncate w-full text-center mt-3 block',
-                theme.colors.text,
-                player.id === myId ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''
-              ]"
-              @click="handleNameClick(player.id)"
-            >{{ player.name }}</span>
+            <!-- Nameplate Component -->
+            <Nameplate
+                :player-id="player.id"
+                layout="vertical"
+                size="2xl"
+                :is-interactable="true"
+                @click-avatar="handleAvatarClick(player.id)"
+                @click-name="handleNameClick(player.id)"
+            />
           </div>
           <!-- Slots -->
           <div

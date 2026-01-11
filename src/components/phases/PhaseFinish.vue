@@ -3,9 +3,11 @@ import { ref, computed, onMounted } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
+import { Trophy, Medal, Crown } from 'lucide-vue-next';
+import AvatarIcon from '../icons/AvatarIcon.vue';
+import Nameplate from '../Nameplate.vue';
 import { AVATARS } from '../../config/avatars';
 import { getAvatarStyle } from '../../utils/avatarStyles';
-import AvatarIcon from '../icons/AvatarIcon.vue';
 import ProfileModal from '../modals/ProfileModal.vue';
 import confetti from 'canvas-confetti';
 
@@ -112,29 +114,22 @@ onMounted(() => {
             </td>
             <td class="p-4 flex items-center gap-3">
               <!-- Avatar -->
-              <AvatarIcon
-                :avatar-id="p.avatarId"
-                size="w-10 h-10"
-                :show-border="true"
-              />
-              <div
-                :class="p.id === myId && isLastRound ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''"
-                @click="handleNameClick(p.id)"
+              <Nameplate
+                :player-id="p.id"
+                layout="horizontal"
+                size="md"
+                :is-interactable="isLastRound && p.id === myId"
+                @click-name="handleNameClick(p.id)"
               >
-                <div
-                  class="font-bold text-lg"
-                  :class="{'text-yellow-400': p.rank===1, 'text-slate-300': p.rank===2, 'text-amber-600': p.rank===3, 'text-slate-200': p.rank>3}"
-                  :style="{ textShadow: p.id === myId ? `0 0 8px ${getPlayerAvatarStyle(p.avatarId).glow}` : 'none' }"
-                >
-                  {{ p.name }}
-                </div>
-                <div
-                  v-if="p.id === myId"
-                  class="text-[10px] text-slate-500 uppercase tracking-widest"
-                >
-                  YOU<span v-if="isLastRound"> (Click to edit)</span>
-                </div>
-              </div>
+                <template #label-bottom>
+                  <span
+                    v-if="p.id === myId"
+                    class="text-[10px] text-slate-500 uppercase tracking-widest block"
+                  >
+                    YOU<span v-if="isLastRound"> (Click to edit)</span>
+                  </span>
+                </template>
+              </Nameplate>
             </td>
             <td
               class="p-4 font-bold text-right text-xl font-mono"
