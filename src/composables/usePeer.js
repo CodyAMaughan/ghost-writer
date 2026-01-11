@@ -68,6 +68,9 @@ export function usePeer() {
     };
 
     const initHost = (name, provider, apiKey, lobbySettings = {}) => {
+        // CRITICAL: Clear any stale state from previous sessions
+        resetGame();
+
         isHost.value = true;
         myName.value = name;
         gameState.settings.provider = provider;
@@ -242,6 +245,22 @@ export function usePeer() {
                 break;
             case 'UPDATE_AVATAR':
                 setPlayerAvatar(senderId, msg.payload.avatarId);
+                break;
+            case 'UPDATE_NAME':
+                // Only allow name updates in LOBBY or FINISH phases
+                if (gameState.phase === 'LOBBY' || gameState.phase === 'FINISH') {
+                    const player = gameState.players.find(p => p.id === senderId);
+                    if (player) {
+                        // Check name isn't taken
+                        const nameTaken = gameState.players.some(p =>
+                            p.id !== senderId && p.name === msg.payload.name
+                        );
+                        if (!nameTaken && msg.payload.name.trim()) {
+                            player.name = msg.payload.name.trim();
+                            broadcastState();
+                        }
+                    }
+                }
                 break;
             case 'REQUEST_GHOST':
                 // Host acts as proxy
@@ -592,6 +611,7 @@ export function usePeer() {
         gameState.round = 1;
         gameState.timer = 0;
         gameState.players = [];
+        gameState.pendingPlayers = [];
         gameState.submissions = [];
         gameState.votes = {};
         gameState.revealedIndex = -1;
@@ -652,6 +672,15 @@ export function usePeer() {
                 setPlayerAvatar(myId.value, avatarId);
             } else {
                 hostConn && hostConn.send({ type: 'UPDATE_AVATAR', payload: { id: myId.value, avatarId } });
+            }
+        },
+        updatePlayerName: (newName) => {
+            if (!newName.trim()) return;
+
+            if (isHost.value) {
+                handleHostData({ type: 'UPDATE_NAME', payload: { name: newName } }, myId.value);
+            } else {
+                hostConn && hostConn.send({ type: 'UPDATE_NAME', payload: { name: newName } });
             }
         },
         submitAnswer: (text, source, agent) => {

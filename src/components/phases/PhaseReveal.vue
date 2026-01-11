@@ -4,8 +4,9 @@ import { usePeer } from '../../composables/usePeer';
 import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
 import { CheckCircle, XCircle, MinusCircle } from 'lucide-vue-next';
-import AvatarIcon from '../AvatarIcon.vue';
+import AvatarIcon from '../icons/AvatarIcon.vue';
 import { AVATARS } from '../../config/avatars';
+import { getAvatarStyle } from '../../utils/avatarStyles';
 
 const { gameState, isHost, myId, nextRevealStep } = usePeer();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
@@ -51,11 +52,10 @@ const getAvatarId = () => {
     return gameState.players.find(p => p.id === currentSubmission.value.authorId)?.avatarId || 0;
 };
 
-const getAvatarColor = () => {
+const getAuthorStyle = () => {
     const id = getAvatarId();
     const av = AVATARS.find(a => a.id === id) || AVATARS[0];
-    // Return just the text-color part for the name, but border passed to icon
-    return av.color; 
+    return getAvatarStyle(av.theme);
 };
 
 // AUDIO TRIGGERS
@@ -119,7 +119,8 @@ const verdict = computed(() => {
               </p>
               <p
                 class="text-2xl font-black leading-none"
-                :class="getAvatarColor()"
+                :class="getAuthorStyle().text"
+                :style="{ textShadow: `0 0 10px ${getAuthorStyle().glow}` }"
               >
                 {{ authorName }}
               </p>

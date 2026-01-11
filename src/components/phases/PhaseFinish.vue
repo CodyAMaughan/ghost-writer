@@ -1,13 +1,32 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
+import { AVATARS } from '../../config/avatars';
+import { getAvatarStyle } from '../../utils/avatarStyles';
+import AvatarIcon from '../icons/AvatarIcon.vue';
+import ProfileModal from '../modals/ProfileModal.vue';
 import confetti from 'canvas-confetti';
 
 const { gameState, isHost, myId, nextRound, startGame, leaveGame, returnToLobby } = usePeer();
 const { playSfx } = useAudio();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
+
+const showProfileModal = ref(false);
+
+const getPlayerAvatarStyle = (avatarId) => {
+    const avatar = AVATARS.find(a => a.id === avatarId) || AVATARS[0];
+    return getAvatarStyle(avatar.theme);
+};
+
+const isLastRound = computed(() => gameState.round >= gameState.maxRounds);
+
+const handleNameClick = (playerId) => {
+    if (playerId === myId.value && isLastRound.value) {
+        showProfileModal.value = true;
+    }
+};
 
 const leaderboard = computed(() => {
     const sorted = [...gameState.players].sort((a,b) => b.score - a.score);
@@ -91,18 +110,30 @@ onMounted(() => {
                 class="text-slate-500"
               >#{{ p.rank }}</span>
             </td>
-            <td class="p-4">
+            <td class="p-4 flex items-center gap-3">
+              <!-- Avatar -->
+              <AvatarIcon
+                :avatar-id="p.avatarId"
+                size="w-10 h-10"
+                :show-border="true"
+              />
               <div
-                class="font-bold text-lg"
-                :class="{'text-yellow-400': p.rank===1, 'text-slate-300': p.rank===2, 'text-amber-600': p.rank===3, 'text-slate-200': p.rank>3}"
+                :class="p.id === myId && isLastRound ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''"
+                @click="handleNameClick(p.id)"
               >
-                {{ p.name }}
-              </div>
-              <div
-                v-if="p.id === myId"
-                class="text-[10px] text-slate-500 uppercase tracking-widest"
-              >
-                YOU
+                <div
+                  class="font-bold text-lg"
+                  :class="{'text-yellow-400': p.rank===1, 'text-slate-300': p.rank===2, 'text-amber-600': p.rank===3, 'text-slate-200': p.rank>3}"
+                  :style="{ textShadow: p.id === myId ? `0 0 8px ${getPlayerAvatarStyle(p.avatarId).glow}` : 'none' }"
+                >
+                  {{ p.name }}
+                </div>
+                <div
+                  v-if="p.id === myId"
+                  class="text-[10px] text-slate-500 uppercase tracking-widest"
+                >
+                  YOU<span v-if="isLastRound"> (Click to edit)</span>
+                </div>
               </div>
             </td>
             <td
@@ -162,5 +193,11 @@ onMounted(() => {
       <span v-if="gameState.round < gameState.maxRounds">Waiting for Host to start next round...</span>
       <span v-else>Game Over. Waiting for Host...</span>
     </div>
+
+    <!-- Profile Edit Modal -->
+    <ProfileModal
+      v-if="showProfileModal"
+      @close="showProfileModal = false"
+    />
   </div>
 </template>

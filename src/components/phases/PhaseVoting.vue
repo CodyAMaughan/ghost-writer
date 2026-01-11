@@ -3,7 +3,8 @@ import { ref, computed } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { THEMES } from '../../config/themes';
 import { User, Zap, Lock, CheckCircle } from 'lucide-vue-next';
-import AvatarIcon from '../AvatarIcon.vue';
+import AvatarIcon from '../icons/AvatarIcon.vue';
+import Nameplate from '../Nameplate.vue';
 import { AVATARS } from '../../config/avatars';
 
 const { gameState, myId, submitVote } = usePeer();
@@ -62,21 +63,14 @@ const getAvatarColor = (playerId) => {
       >
         <!-- Player Identity & Text -->
         <div class="flex-grow flex flex-col items-center md:items-start text-center md:text-left">
-          <div class="flex items-center gap-2 text-slate-500 mb-2">
-            <AvatarIcon
-              :avatar-id="getAvatarId(sub.authorId)"
-              size="w-8 h-8"
-              :show-border="true"
+          <div class="flex items-center gap-2 mb-2">
+            <Nameplate
+                :player-id="sub.authorId"
+                variant="default"
             />
             <span
-              class="font-bold text-sm tracking-wider uppercase"
-              :class="getAvatarColor(sub.authorId)"
-            >
-              {{ gameState.players.find(p => p.id === sub.authorId)?.name || 'Unknown' }}
-            </span>
-            <span
               v-if="sub.authorId === myId"
-              class="text-[10px] bg-slate-700 px-2 rounded-full text-white"
+              class="text-[10px] bg-slate-700 px-2 rounded-full text-white ml-2"
             >YOU</span>
           </div>
           <p class="text-lg text-white font-serif italic">

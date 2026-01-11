@@ -3,10 +3,11 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { useAudio } from '../composables/useAudio';
 import { Users, Check, X, Link, Share, Server, LogIn, Key, Play, Trash2, EyeOff, Wifi } from 'lucide-vue-next';
-import AvatarIcon from './AvatarIcon.vue';
+import AvatarIcon from './icons/AvatarIcon.vue';
 import { AVATARS } from '../config/avatars';
 import { THEMES } from '../config/themes';
 import ApiKeyHelpModal from './ApiKeyHelpModal.vue';
+import ProfileModal from './modals/ProfileModal.vue';
 import QrcodeVue from 'qrcode.vue';
 import { useStreamerMode } from '../composables/useStreamerMode';
 
@@ -240,14 +241,27 @@ const shareLink = async () => {
 };
 
 const showAvatarPicker = ref(false);
+const showProfileModal = ref(false);
 
-const selectAvatar = (id) => {
-    updateAvatar(id);
+const selectAvatar = (avatarId) => {
+    updateAvatar(avatarId);
     showAvatarPicker.value = false;
 };
 
 const isTaken = (id) => {
     return gameState.players.some(p => p.avatarId === id && p.id !== myId.value);
+};
+
+const handleAvatarClick = (playerId) => {
+    if (playerId === myId.value) {
+        showAvatarPicker.value = true;
+    }
+};
+
+const handleNameClick = (playerId) => {
+    if (playerId === myId.value) {
+        showProfileModal.value = true;
+    }
 };
 </script>
 
@@ -646,30 +660,39 @@ const isTaken = (id) => {
                 class="cursor-pointer bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded border border-slate-600 flex flex-col items-center justify-center group min-w-[140px]"
                 @click="copyCode"
               >
-                <div v-if="copyStatus === 'IDLE'" class="flex flex-col items-center">
-                    <span class="text-xs text-slate-500 group-hover:text-slate-300 uppercase font-bold">Access Code</span>
+                <div
+                  v-if="copyStatus === 'IDLE'"
+                  class="flex flex-col items-center"
+                >
+                  <span class="text-xs text-slate-500 group-hover:text-slate-300 uppercase font-bold">Access Code</span>
                     
-                    <span
+                  <span
                     v-if="!isStreamerMode"
                     class="text-2xl font-bold tracking-[0.2em]"
                     :class="theme.colors.accent"
                     data-testid="lobby-code-display"
-                    >{{ gameState.roomCode }}</span>
+                  >{{ gameState.roomCode }}</span>
                     
-                    <span
-                        v-else
-                        class="text-xl font-bold flex items-center gap-2 mt-1"
-                        :class="theme.colors.accent"
-                        data-testid="lobby-code-display"
-                    >
-                        <EyeOff class="w-5 h-5" /> ****
-                    </span>
+                  <span
+                    v-else
+                    class="text-xl font-bold flex items-center gap-2 mt-1"
+                    :class="theme.colors.accent"
+                    data-testid="lobby-code-display"
+                  >
+                    <EyeOff class="w-5 h-5" /> ****
+                  </span>
                     
-                    <span v-if="isStreamerMode" class="text-[10px] text-slate-500 mt-0.5">Hidden</span>
+                  <span
+                    v-if="isStreamerMode"
+                    class="text-[10px] text-slate-500 mt-0.5"
+                  >Hidden</span>
                 </div>
-                <div v-else class="flex flex-col items-center animate-bounce">
-                    <Check class="w-8 h-8 text-green-500 mb-1" />
-                    <span class="text-green-500 font-bold tracking-widest">COPIED!</span>
+                <div
+                  v-else
+                  class="flex flex-col items-center animate-bounce"
+                >
+                  <Check class="w-8 h-8 text-green-500 mb-1" />
+                  <span class="text-green-500 font-bold tracking-widest">COPIED!</span>
                 </div>
               </div>
 
@@ -725,21 +748,27 @@ const isTaken = (id) => {
               <Trash2 class="w-3 h-3 text-red-300" />
             </button>
              
-            <!-- Avatar -->
+            <!-- Avatar - Click opens quick picker for own avatar -->
             <div
-              :class="player.id === myId ? 'cursor-pointer transition-transform hover:scale-110 active:scale-95' : ''" 
-              @click="player.id === myId ? showAvatarPicker = true : null"
+              :class="player.id === myId ? 'cursor-pointer' : ''" 
+              @click="handleAvatarClick(player.id)"
             >
               <AvatarIcon
                 :avatar-id="player.avatarId"
                 size="w-20 h-20"
                 :show-border="true"
+                :is-clickable="player.id === myId"
               />
             </div>
 
+            <!-- Name - Click opens full profile modal for own name -->
             <span
-              class="font-bold truncate w-full text-center mt-3"
-              :class="theme.colors.text"
+              :class="[
+                'font-bold truncate w-full text-center mt-3 block',
+                theme.colors.text,
+                player.id === myId ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''
+              ]"
+              @click="handleNameClick(player.id)"
             >{{ player.name }}</span>
           </div>
           <!-- Slots -->
@@ -885,8 +914,15 @@ const isTaken = (id) => {
       </div>
     </div>
 
+    <!-- Profile Edit Modal -->
+    <ProfileModal
+      v-if="showProfileModal"
+      @close="showProfileModal = false"
+    />
+
+    <!-- API Key Modal -->
     <ApiKeyHelpModal
-      :is-open="showKeyHelp"
+      v-if="showKeyHelp"
       @close="showKeyHelp = false"
     />
     
@@ -929,25 +965,27 @@ const isTaken = (id) => {
     </div>
   </div>
 
-    <!-- CONNECTING MODAL -->
-    <div
-      v-if="showConnectingModal"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
-    >
-      <div class="bg-slate-800 border border-slate-600 rounded-xl p-8 flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300 w-full max-w-sm">
-        <div class="relative">
-             <Wifi class="w-16 h-16 text-blue-400 animate-pulse" />
-             <div class="absolute inset-0 bg-blue-400 blur-xl opacity-20 animate-pulse"></div>
-        </div>
+  <!-- CONNECTING MODAL -->
+  <div
+    v-if="showConnectingModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+  >
+    <div class="bg-slate-800 border border-slate-600 rounded-xl p-8 flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300 w-full max-w-sm">
+      <div class="relative">
+        <Wifi class="w-16 h-16 text-blue-400 animate-pulse" />
+        <div class="absolute inset-0 bg-blue-400 blur-xl opacity-20 animate-pulse" />
+      </div>
         
-        <div class="text-center">
-             <h3 class="text-xl font-bold text-white tracking-widest mb-1 flex items-center justify-center gap-1">
-                CONNECTING<span class="loading-dots"></span>
-             </h3>
-             <p class="text-xs text-slate-400">Locating Lobby...</p>
-        </div>
+      <div class="text-center">
+        <h3 class="text-xl font-bold text-white tracking-widest mb-1 flex items-center justify-center gap-1">
+          CONNECTING<span class="loading-dots" />
+        </h3>
+        <p class="text-xs text-slate-400">
+          Locating Lobby...
+        </p>
       </div>
     </div>
+  </div>
 </template>
 
 <style>

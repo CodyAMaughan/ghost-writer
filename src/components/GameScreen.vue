@@ -104,20 +104,20 @@ watch(() => gameState.phase, (newPhase) => {
         
         <!-- HOST ABORT -->
         <button 
-            v-if="isHost"
-            @click="confirmAbort"
-            class="text-red-500/50 hover:text-red-500 font-bold uppercase tracking-wider text-[10px] border border-red-500/20 hover:border-red-500 px-2 py-1 rounded transition-colors"
+          v-if="isHost"
+          class="text-red-500/50 hover:text-red-500 font-bold uppercase tracking-wider text-[10px] border border-red-500/20 hover:border-red-500 px-2 py-1 rounded transition-colors"
+          @click="confirmAbort"
         >
-            Abort
+          Abort
         </button>
 
-         <!-- PEER LEAVE -->
+        <!-- PEER LEAVE -->
         <button 
-            v-if="!isHost"
-            @click="confirmLeave"
-            class="text-red-500/50 hover:text-red-500 font-bold uppercase tracking-wider text-[10px] border border-red-500/20 hover:border-red-500 px-2 py-1 rounded transition-colors"
+          v-if="!isHost"
+          class="text-red-500/50 hover:text-red-500 font-bold uppercase tracking-wider text-[10px] border border-red-500/20 hover:border-red-500 px-2 py-1 rounded transition-colors"
+          @click="confirmLeave"
         >
-            Leave
+          Leave
         </button>
       </div>
       <div
