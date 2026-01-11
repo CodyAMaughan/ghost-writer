@@ -111,4 +111,33 @@ describe('PhaseFinish.vue', () => {
         mount(PhaseFinish);
         expect(confetti).toHaveBeenCalled();
     });
+    it('sets Nameplate interactivity only on final round for own player', () => {
+        // Round 1 of 5 (Not final)
+        mockPeer.gameState.round = 1;
+        mockPeer.gameState.maxRounds = 5;
+        mockPeer.gameState.players = [
+            { id: 'player1', name: 'Me', score: 10 },
+            { id: 'player2', name: 'Other', score: 20 }
+        ];
+
+        let wrapper = mount(PhaseFinish);
+        let myNameplate = wrapper.findAllComponents({ name: 'Nameplate' })
+            .find(n => n.props('playerId') === 'player1');
+
+        expect(myNameplate.props('isInteractable')).toBe(false);
+
+        // Final Round (5 of 5)
+        mockPeer.gameState.round = 5;
+        wrapper = mount(PhaseFinish);
+        myNameplate = wrapper.findAllComponents({ name: 'Nameplate' })
+            .find(n => n.props('playerId') === 'player1');
+
+        expect(myNameplate.props('isInteractable')).toBe(true);
+
+        const otherNameplate = wrapper.findAllComponents({ name: 'Nameplate' })
+            .find(n => n.props('playerId') === 'player2');
+
+        // Other players are never interactable
+        expect(otherNameplate.props('isInteractable')).toBe(false);
+    });
 });

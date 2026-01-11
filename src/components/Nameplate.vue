@@ -1,9 +1,10 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { AVATARS } from '../config/avatars';
 import { getAvatarStyle } from '../utils/avatarStyles';
 import AvatarIcon from './icons/AvatarIcon.vue';
+import AvatarPickerModal from './modals/AvatarPickerModal.vue';
 
 const props = defineProps({
     playerId: { type: String, required: true },
@@ -13,12 +14,13 @@ const props = defineProps({
     size: { type: String, default: 'sm' }, // 'sm', 'md', 'lg', 'xl', '2xl'
     isInteractable: { type: Boolean, default: false },
     showYouBadge: { type: Boolean, default: false },
-    showYouBadge: { type: Boolean, default: false },
     showAvatar: { type: Boolean, default: true },
     showName: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['click', 'click-avatar', 'click-name']);
+
+const showAvatarPicker = ref(false);
 
 const { gameState, myId } = usePeer();
 
@@ -63,6 +65,9 @@ const sizeClasses = computed(() => {
 const handleAvatarClick = (e) => {
     if (isOwnNameplate.value) {
         e.stopPropagation();
+        if (props.isInteractable) {
+            showAvatarPicker.value = true;
+        }
         emit('click-avatar');
     }
 };
@@ -92,7 +97,7 @@ const handleClick = () => {
     @click="handleClick"
   >
     <!-- Avatar -->
-    <div @click="handleAvatarClick" :class="isOwnNameplate ? 'cursor-pointer' : ''">
+    <div @click="handleAvatarClick" :class="isClickable ? 'cursor-pointer' : ''">
         <AvatarIcon
         v-if="showAvatar"
         :avatar-id="player.avatarId"
@@ -112,7 +117,7 @@ const handleClick = () => {
         v-if="showName"
         class="flex items-center gap-2"
         @click="handleNameClick"
-        :class="isOwnNameplate ? 'cursor-pointer' : ''"
+        :class="isClickable ? 'cursor-pointer' : ''"
       >
         <span
           :class="[
@@ -139,5 +144,11 @@ const handleClick = () => {
       <!-- Bottom Label Slot (e.g. Click to edit) -->
       <slot name="label-bottom" />
     </div>
+
+    <!-- Avatar Picker Modal -->
+    <AvatarPickerModal
+        v-if="isInteractable && isOwnNameplate"
+        v-model="showAvatarPicker"
+    />
   </div>
 </template>

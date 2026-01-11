@@ -109,6 +109,16 @@ describe('Lobby - Streamer Mode', () => {
         await navigateToLobby(wrapper);
         const { isStreamerMode } = useStreamerMode();
 
+        // QR Code is currently commented out in the component, so it should NOT exist
+        // logic below updated to reflect that, or we can skip/remove this test block.
+        // For now, let's just assert it doesn't exist to remain consistent with current state.
+
+        let qrContainer = wrapper.find('[data-testid="lobby-qr-container"]');
+        expect(qrContainer.exists()).toBe(false);
+
+        /* 
+        // Original Logic preserved in comment for when QR code returns
+        
         // Start OFF
         isStreamerMode.value = false;
         await wrapper.vm.$nextTick();
@@ -123,6 +133,7 @@ describe('Lobby - Streamer Mode', () => {
 
         // Should have blur
         expect(qrContainer.classes()).toContain('blur-xl');
+        */
     });
 
     it('copies real code and shows feedback', async () => {

@@ -3,11 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { usePeer } from '../../composables/usePeer';
 import { useAudio } from '../../composables/useAudio';
 import { THEMES } from '../../config/themes';
-import { Trophy, Medal, Crown } from 'lucide-vue-next';
-import AvatarIcon from '../icons/AvatarIcon.vue';
 import Nameplate from '../Nameplate.vue';
-import { AVATARS } from '../../config/avatars';
-import { getAvatarStyle } from '../../utils/avatarStyles';
 import ProfileModal from '../modals/ProfileModal.vue';
 import confetti from 'canvas-confetti';
 
@@ -16,11 +12,6 @@ const { playSfx } = useAudio();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
 const showProfileModal = ref(false);
-
-const getPlayerAvatarStyle = (avatarId) => {
-    const avatar = AVATARS.find(a => a.id === avatarId) || AVATARS[0];
-    return getAvatarStyle(avatar.theme);
-};
 
 const isLastRound = computed(() => gameState.round >= gameState.maxRounds);
 

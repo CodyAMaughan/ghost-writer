@@ -241,23 +241,7 @@ const shareLink = async () => {
     }
 };
 
-const showAvatarPicker = ref(false);
 const showProfileModal = ref(false);
-
-const selectAvatar = (avatarId) => {
-    updateAvatar(avatarId);
-    showAvatarPicker.value = false;
-};
-
-const isTaken = (id) => {
-    return gameState.players.some(p => p.avatarId === id && p.id !== myId.value);
-};
-
-const handleAvatarClick = (playerId) => {
-    if (playerId === myId.value) {
-        showAvatarPicker.value = true;
-    }
-};
 
 const handleNameClick = (playerId) => {
     if (playerId === myId.value) {
@@ -640,7 +624,7 @@ const handleNameClick = (playerId) => {
            
           <!-- ROOM CODE & INVITE -->
           <div class="flex gap-4 items-stretch">
-            <!-- QR CODE -->
+            <!-- QR CODE: Commented out to declutter lobby, but kept for future use if needed.
             <div 
               v-if="joinUrl"
               class="bg-white p-2 rounded transition-all duration-500 shrink-0 hidden md:block"
@@ -654,6 +638,7 @@ const handleNameClick = (playerId) => {
                 level="H"
               />
             </div>
+            -->
 
             <div class="flex gap-2 items-stretch">
               <div
@@ -755,7 +740,6 @@ const handleNameClick = (playerId) => {
                 layout="vertical"
                 size="2xl"
                 :is-interactable="true"
-                @click-avatar="handleAvatarClick(player.id)"
                 @click-name="handleNameClick(player.id)"
             />
           </div>
@@ -914,43 +898,7 @@ const handleNameClick = (playerId) => {
       @close="showKeyHelp = false"
     />
     
-    <!-- AVATAR PICKER MODAL -->
-    <div
-      v-if="showAvatarPicker"
-      class="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4"
-    >
-      <div class="bg-slate-800 p-6 rounded-xl border border-slate-600 max-w-lg w-full shadow-2xl animate-fade-in-up">
-        <h3 class="text-white font-bold text-xl mb-6 text-center tracking-widest uppercase">
-          Select Identity
-        </h3>
-        <div class="grid grid-cols-4 gap-4 justify-items-center">
-          <button
-            v-for="av in AVATARS"
-            :key="av.id" 
-            :disabled="isTaken(av.id)" 
-            class="relative group transition-all disabled:opacity-30 disabled:cursor-not-allowed transform hover:scale-110 active:scale-95"
-            @click="selectAvatar(av.id)"
-          >
-            <AvatarIcon
-              :avatar-id="av.id"
-              size="w-16 h-16"
-            />
-            <div
-              v-if="isTaken(av.id)"
-              class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full"
-            >
-              <Ban class="text-red-500 w-8 h-8" />
-            </div>
-          </button>
-        </div>
-        <button
-          class="mt-8 w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded font-bold uppercase tracking-widest"
-          @click="showAvatarPicker = false"
-        >
-          CANCEL
-        </button>
-      </div>
-    </div>
+
   </div>
 
   <!-- CONNECTING MODAL -->

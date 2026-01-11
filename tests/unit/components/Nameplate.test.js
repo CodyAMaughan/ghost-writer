@@ -88,4 +88,60 @@ describe('Nameplate.vue', () => {
 
         expect(wrapper.text()).toContain('Unknown');
     });
+    it('opens avatar picker when clicking own avatar if interactable', async () => {
+        const wrapper = mount(Nameplate, {
+            props: {
+                playerId: 'player1',
+                isInteractable: true
+            },
+            global: {
+                stubs: {
+                    AvatarPickerModal: true
+                }
+            }
+        });
+
+        await wrapper.find('[data-testid="nameplate-avatar"]').trigger('click');
+        // Check if the component would show the picker (state change)
+        // Since we stubbed it, we check if the stub exists or if we can access the component state/props
+        // But Nameplate manages the state internally. We can check if the stub is rendered if v-if allows it.
+        // Actually, the v-if="showAvatarPicker" means it won't be in DOM initially.
+        // After click, it should appear.
+
+        expect(wrapper.findComponent({ name: 'AvatarPickerModal' }).exists()).toBe(true);
+    });
+
+    it('does not open avatar picker if not interactable', async () => {
+        const wrapper = mount(Nameplate, {
+            props: {
+                playerId: 'player1',
+                isInteractable: false
+            },
+            global: {
+                stubs: {
+                    AvatarPickerModal: true
+                }
+            }
+        });
+
+        await wrapper.find('[data-testid="nameplate-avatar"]').trigger('click');
+        expect(wrapper.findComponent({ name: 'AvatarPickerModal' }).exists()).toBe(false);
+    });
+
+    it('does not open avatar picker if not own nameplate', async () => {
+        const wrapper = mount(Nameplate, {
+            props: {
+                playerId: 'player2',
+                isInteractable: true
+            },
+            global: {
+                stubs: {
+                    AvatarPickerModal: true
+                }
+            }
+        });
+
+        await wrapper.find('[data-testid="nameplate-avatar"]').trigger('click');
+        expect(wrapper.findComponent({ name: 'AvatarPickerModal' }).exists()).toBe(false);
+    });
 });

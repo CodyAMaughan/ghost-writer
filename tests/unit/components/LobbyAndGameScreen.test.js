@@ -197,6 +197,36 @@ describe('Lobby Integration', () => {
         await startBtn.trigger('click');
         expect(mockActions.startGame).toHaveBeenCalled();
     });
+
+    it('sets Nameplate interactivity to true for own player in Lobby', async () => {
+        // Setup state with multiple players
+        mockGameState.players = [
+            { id: 'p1', name: 'Me', isHost: true },
+            { id: 'p2', name: 'Other', isHost: false }
+        ];
+
+        const wrapper = mount(Lobby);
+
+        // Find my nameplate
+        const myNameplate = wrapper.findAllComponents({ name: 'Nameplate' })
+            .find(n => n.props('playerId') === 'p1');
+
+        expect(myNameplate.exists()).toBe(true);
+        expect(myNameplate.props('isInteractable')).toBe(true);
+
+        // Other player nameplate
+        const otherNameplate = wrapper.findAllComponents({ name: 'Nameplate' })
+            .find(n => n.props('playerId') === 'p2');
+
+        // In Lobby, we might allow clicking others to see profile, but the Avatar Picker constraint 
+        // is handled by Nameplate internally checking isOwnNameplate AND isInteractable.
+        // The Lobby passes isInteractable=true to everyone typically, or just checks handleNameClick.
+        // Let's verify what Lobby passes.
+        // Looking at Lobby.vue: it loops players and passes :is-interactable="true" to ALL.
+        // Nameplate.vue handles the "isOwnNameplate" check before opening Avatar Picker.
+        // So we expect isInteractable=true for both.
+        expect(otherNameplate.props('isInteractable')).toBe(true);
+    });
 });
 
 describe('GameScreen Integration', () => {
