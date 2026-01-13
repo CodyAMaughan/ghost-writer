@@ -295,10 +295,17 @@ export function usePeer() {
                 }
                 break;
             case 'CHAT_MESSAGE':
-                // Host relays to ALL connected clients
-                for (const conn of connMap.values()) {
-                    conn.send({ type: 'CHAT_MESSAGE', payload: msg.payload });
-                }
+                // Host sees it too
+                gameMessages.value.push(msg.payload);
+                if (gameMessages.value.length > 50) gameMessages.value.shift();
+
+                // Host relays to ADMITTED clients only
+                gameState.players.forEach(p => {
+                    const conn = connMap.get(p.id);
+                    if (conn) {
+                        conn.send({ type: 'CHAT_MESSAGE', payload: msg.payload });
+                    }
+                });
                 break;
             case 'REACTION_EMOTE':
                 // 1. Validate against Registry
@@ -311,10 +318,16 @@ export function usePeer() {
                 // Rely on Client UI to rate limit, but Host drops obviously spammed stuff if needed.
                 // Let's implement basic "Is Valid" check.
 
-                // 3. Relay
-                for (const conn of connMap.values()) {
-                    conn.send({ type: 'REACTION_EMOTE', payload: msg.payload });
-                }
+                // Host sees it
+                lastReaction.value = msg.payload;
+
+                // 3. Relay to ADMITTED clients only
+                gameState.players.forEach(p => {
+                    const conn = connMap.get(p.id);
+                    if (conn) {
+                        conn.send({ type: 'REACTION_EMOTE', payload: msg.payload });
+                    }
+                });
                 break;
         }
     };
@@ -393,9 +406,14 @@ export function usePeer() {
         // Yes, Host has god view. That's acceptable for this prototype.
         // Ideally Host UI would use the same masked logic for the "Player View".
 
-        for (const conn of connMap.values()) {
-            conn.send({ type: 'SYNC', payload: stateToSend });
-        }
+        // Only send to ADMITTED players (in gameState.players)
+        // This prevents Waiting Room candidates from seeing game state
+        gameState.players.forEach(p => {
+            const conn = connMap.get(p.id);
+            if (conn) {
+                conn.send({ type: 'SYNC', payload: stateToSend });
+            }
+        });
     };
 
     const addPlayer = (id, name, isHostPlayer) => {
@@ -647,8 +665,7 @@ export function usePeer() {
         if (isHost.value) {
             // Host creates message, adds to local, broadcasts
             handleHostData({ type: 'CHAT_MESSAGE', payload: msg }, myId.value);
-            // Also add locally because handleHostData just relays
-            gameMessages.value.push(msg);
+            // Also add locally because handleHostData just relays -- NO, handleHostData now ingests!
         } else {
             hostConn && hostConn.send({ type: 'CHAT_MESSAGE', payload: msg });
         }
@@ -700,7 +717,10 @@ export function usePeer() {
         }
 
         isPending.value = false;
+        isPending.value = false;
         gameMessages.value = [];
+        lastReaction.value = null; // Clear last reaction
+
         // We keep myName.value for convenience
     };
 

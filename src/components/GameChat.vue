@@ -3,9 +3,9 @@ import { ref, computed, nextTick } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { EMOTE_REGISTRY } from '../config/emotes';
 import { THEMES } from '../config/themes';
-import { MessageCircle, X, Lock } from 'lucide-vue-next';
+import { MessageCircle, X, Lock, Smile } from 'lucide-vue-next';
 
-const { gameMessages, sendChatMessage, sendEmote, gameState } = usePeer();
+const { gameMessages, sendChatMessage, sendEmote, gameState, myId, isPending } = usePeer();
 
 const isOpen = ref(false);
 const currentTab = ref('CHAT');
@@ -14,10 +14,15 @@ const chatContainer = ref(null);
 
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
-const toggleChat = () => {
-    isOpen.value = !isOpen.value;
-    if (isOpen.value && currentTab.value === 'CHAT') {
-        scrollToBottom();
+const toggleChat = (tab = 'CHAT') => {
+    if (isOpen.value && currentTab.value === tab) {
+        isOpen.value = false;
+    } else {
+        isOpen.value = true;
+        currentTab.value = tab;
+        if (tab === 'CHAT') {
+            scrollToBottom();
+        }
     }
 };
 
@@ -42,6 +47,11 @@ const handleEmoteClick = (emote) => {
     // Optional: Visual feedback or close on select? User didn't specify. Keeping open.
 };
 
+const openEmotes = () => {
+    currentTab.value = 'EMOTES';
+    isOpen.value = true;
+};
+
 // Scroll on new messages if already at bottom or robustly
 // For MVP, just scroll if open
 import { watch } from 'vue';
@@ -54,17 +64,34 @@ watch(() => gameMessages.value.length, () => {
 </script>
 
 <template>
-  <div class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
-    <!-- Toggle Button (When Closed) -->
-    <button 
-      v-if="!isOpen"
-      class="p-3 rounded-full shadow-lg transition-transform hover:scale-110"
-      :class="[theme.colors.button, 'text-white']"
-      aria-label="Open Chat"
-      @click="toggleChat"
-    >
-      <MessageCircle class="w-6 h-6" />
-    </button>
+  <div 
+    v-if="gameState.roomCode && !isPending && gameState.players.some(p => p.id === myId)"
+    class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2"
+  >
+    <!-- Toggle Buttons (When Closed) -->
+    <div v-if="!isOpen" class="flex flex-col gap-2 items-end">
+        <!-- Smiley (Emotes) -->
+        <button 
+          class="p-3 rounded-full shadow-lg transition-transform hover:scale-110 text-white"
+          :class="theme.colors.button"
+          aria-label="Open Emotes"
+          data-testid="toggle-emotes"
+          @click="toggleChat('EMOTES')"
+        >
+          <Smile class="w-6 h-6" />
+        </button>
+
+        <!-- Chat Bubble -->
+        <button 
+          class="p-3 rounded-full shadow-lg transition-transform hover:scale-110"
+          :class="[theme.colors.button, 'text-white']"
+          aria-label="Open Chat"
+          data-testid="toggle-chat"
+          @click="toggleChat('CHAT')"
+        >
+          <MessageCircle class="w-6 h-6" />
+        </button>
+    </div>
 
     <!-- Chat Window -->
     <div 
@@ -94,7 +121,7 @@ watch(() => gameMessages.value.length, () => {
         <button
           class="text-slate-400 hover:text-white transition-colors"
           aria-label="Close Chat"
-          @click="toggleChat"
+          @click="isOpen = false"
         >
           <X class="w-5 h-5" />
         </button>
@@ -136,6 +163,15 @@ watch(() => gameMessages.value.length, () => {
             class="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
             @keyup.enter="sendMessage"
           >
+          <button 
+            class="hidden md:flex items-center justify-center p-2 text-slate-400 hover:text-white transition-colors"
+            title="Quick Emotes"
+            data-testid="input-smiley"
+            @click="openEmotes"
+          >
+             <Smile class="w-5 h-5" />
+          </button>
+          
           <button 
             class="px-3 py-2 rounded text-white font-bold text-sm transition-colors hover:opacity-90 disabled:opacity-50"
             :class="theme.colors.button"

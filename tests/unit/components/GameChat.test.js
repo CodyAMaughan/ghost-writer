@@ -1,41 +1,87 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { nextTick, ref, reactive } from 'vue';
 import GameChat from '../../../src/components/GameChat.vue';
-import { nextTick, ref } from 'vue';
 
-// Mock usePeer
+// Mock dependencies
 const mockSendChat = vi.fn();
 const mockSendEmote = vi.fn();
-const mockGameMessages = [];
+const mockGameMessages = ref([]);
+const mockMyId = ref('me');
+const mockGameState = reactive({
+    currentTheme: 'viral',
+    roomCode: 'ABCD',
+    players: [{ id: 'me', name: 'Me' }]
+});
+const mockIsPending = ref(false);
 
 vi.mock('../../../src/composables/usePeer', () => ({
     usePeer: () => ({
-        gameMessages: ref(mockGameMessages),
+        myId: mockMyId,
+        gameMessages: mockGameMessages,
         sendChatMessage: mockSendChat,
         sendEmote: mockSendEmote,
-        myName: { value: 'Me' },
-        gameState: { currentTheme: 'viral' }
+        gameState: mockGameState,
+        isPending: mockIsPending
     })
 }));
 
-// Add this config to handle transitions
-import { config } from '@vue/test-utils';
-config.global.stubs = {
-    transition: false
+vi.mock('../../../src/config/emotes', () => ({
+    EMOTE_REGISTRY: {
+        human: { id: 'human', char: '👤', locked: false },
+        lock: { id: 'lock', char: '🔒', locked: true }
+    }
+}));
+
+// Stub Transition to avoid timing issues in test environment
+const TransitionStub = {
+    template: '<div><slot /></div>',
 };
 
 describe('GameChat.vue', () => {
-    it('renders chat input and send button after opening', async () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockGameMessages.value = [];
+        mockGameState.roomCode = 'ABCD';
+    });
+
+    it('renders closed state initially', () => {
         const wrapper = mount(GameChat);
-        await wrapper.find('button[aria-label="Open Chat"]').trigger('click');
-        expect(wrapper.find('input[type="text"]').exists()).toBe(true);
-        expect(wrapper.find('button[aria-label="Send Message"]').exists()).toBe(true);
+        expect(wrapper.find('div[aria-label="Game Chat"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="toggle-chat"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="toggle-emotes"]').exists()).toBe(true);
+    });
+
+    it('opens chat and hides toggles', async () => {
+        const wrapper = mount(GameChat, {
+            global: { stubs: { transition: TransitionStub } }
+        });
+        await wrapper.find('[data-testid="toggle-chat"]').trigger('click');
+
+        expect(wrapper.find('div[aria-label="Game Chat"]').exists()).toBe(true);
+        // Toggles should be hidden
+        expect(wrapper.find('[data-testid="toggle-chat"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="toggle-emotes"]').exists()).toBe(false);
+    });
+
+    it('opens emotes directly and hides toggles', async () => {
+        const wrapper = mount(GameChat, {
+            global: { stubs: { transition: TransitionStub } }
+        });
+        await wrapper.find('[data-testid="toggle-emotes"]').trigger('click');
+
+        expect(wrapper.find('div[aria-label="Game Chat"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain('EMOTES');
+
+        expect(wrapper.find('[data-testid="toggle-chat"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="toggle-emotes"]').exists()).toBe(false);
     });
 
     it('emits chat message on send', async () => {
-        const wrapper = mount(GameChat);
-        // Open chat first
-        await wrapper.find('button[aria-label="Open Chat"]').trigger('click');
+        const wrapper = mount(GameChat, {
+            global: { stubs: { transition: TransitionStub } }
+        });
+        await wrapper.find('[data-testid="toggle-chat"]').trigger('click');
 
         const input = wrapper.find('input[type="text"]');
         await input.setValue('Hello Test');
@@ -45,63 +91,95 @@ describe('GameChat.vue', () => {
     });
 
     it('switches tabs between Chat and Emotes', async () => {
-        const wrapper = mount(GameChat);
-        // Open chat first
-        await wrapper.find('button[aria-label="Open Chat"]').trigger('click');
+        const wrapper = mount(GameChat, {
+            global: { stubs: { transition: TransitionStub } }
+        });
+        await wrapper.find('[data-testid="toggle-chat"]').trigger('click');
         await nextTick();
 
-        // Default is Chat
-        // Default is Chat
-        // Check for specific empty state div text
-        const emptyState = wrapper.findAll('div').find(d => d.text().includes('No messages yet'));
-        expect(emptyState).toBeDefined();
-        expect(emptyState.exists()).toBe(true);
-
-        // Click Emotes Tab (Make sure drawer is open, but tabs are inside drawer)
-        // Chat is already open from previous steps
-
-        const emotesTabBtn = wrapper.findAll('button').find(b => b.text() === 'EMOTES');
-        expect(emotesTabBtn).toBeDefined();
-        await emotesTabBtn.trigger('click');
-
-        // Should see emotes grid
-        expect(wrapper.find('.grid').exists()).toBe(true);
-
-        // Switch back
-        const chatTabBtn = wrapper.findAll('button').find(b => b.text() === 'CHAT');
-        await chatTabBtn.trigger('click');
+        // Should start on CHAT
         expect(wrapper.find('input[type="text"]').exists()).toBe(true);
+
+        // Switch to EMOTES via internal tab
+        const buttons = wrapper.findAll('button');
+        const emotesTab = buttons.find(b => b.text() === 'EMOTES');
+        await emotesTab.trigger('click');
+
+        expect(wrapper.find('input[type="text"]').exists()).toBe(false);
+        // Check for an emote button existence
+        expect(wrapper.find('button[title="Locked"]').exists()).toBe(true); // lock is locked
     });
 
     it('sends emote on click', async () => {
-        const wrapper = mount(GameChat);
-        await wrapper.find('button[aria-label="Open Chat"]').trigger('click');
-        await wrapper.findAll('button').find(b => b.text() === 'EMOTES').trigger('click');
+        const wrapper = mount(GameChat, {
+            global: { stubs: { transition: TransitionStub } }
+        });
+        await wrapper.find('[data-testid="toggle-emotes"]').trigger('click');
 
-        // Find a known standard emote (e.g. Heart)
-        // Emote registry keys iterate.
-        // Let's click the first button in the grid
-        const emoteBtns = wrapper.findAll('.grid button');
-        await emoteBtns[0].trigger('click');
+        const buttons = wrapper.findAll('button');
+        const humanBtn = buttons.filter(b => b.text().includes('👤')).at(0); // human char
 
-        expect(mockSendEmote).toHaveBeenCalled();
+        await humanBtn.trigger('click');
+        expect(mockSendEmote).toHaveBeenCalledWith('human');
     });
 
-    it('does not send locked emotes', async () => {
+    it('does not send locked emote', async () => {
+        const wrapper = mount(GameChat, {
+            global: { stubs: { transition: TransitionStub } }
+        });
+        await wrapper.find('[data-testid="toggle-emotes"]').trigger('click');
+
+        const buttons = wrapper.findAll('button');
+        const lockBtn = buttons.filter(b => b.text().includes('🔒')).at(0); // lock char
+
+        await lockBtn.trigger('click');
+        expect(mockSendEmote).not.toHaveBeenCalledWith('lock');
+    });
+
+    it('is hidden when roomCode is empty', async () => {
+        mockGameState.roomCode = '';
         const wrapper = mount(GameChat);
-        await wrapper.find('button[aria-label="Open Chat"]').trigger('click');
-        await wrapper.findAll('button').find(b => b.text() === 'EMOTES').trigger('click');
+        await nextTick();
+        expect(wrapper.find('[data-testid="toggle-chat"]').exists()).toBe(false);
+    });
 
-        // Find locked emote (Human)
-        // We can find by text char or by checking class
-        // Standard registry has 'human' 👤 as locked
-        const lockedBtn = wrapper.findAll('.grid button').find(b => b.text().includes('👤'));
-        expect(lockedBtn).toBeDefined();
+    it('X button closes chat regardless of tab', async () => {
+        const wrapper = mount(GameChat, {
+            global: { stubs: { transition: TransitionStub } }
+        });
+        // Open Emotes
+        await wrapper.find('[data-testid="toggle-emotes"]').trigger('click');
+        expect(wrapper.find('div[aria-label="Game Chat"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain('EMOTES');
 
-        await lockedBtn.trigger('click');
+        // Click X
+        await wrapper.find('button[aria-label="Close Chat"]').trigger('click');
 
-        // Should NOT call sendEmote with 'human'
-        // Although mockSendEmote was called in previous test, we can check calls
-        expect(mockSendEmote).not.toHaveBeenCalledWith('human');
+        expect(wrapper.find('div[aria-label="Game Chat"]').exists()).toBe(false);
+    });
+
+    it('Chat is hidden if player is not admitted (waiting room)', async () => {
+        // Case 1: isPending is true
+        mockGameState.roomCode = 'ABCD';
+        mockGameState.players = [{ id: 'me' }];
+        mockIsPending.value = true;
+
+        let wrapper = mount(GameChat);
+        await nextTick();
+        expect(wrapper.find('[data-testid="toggle-chat"]').exists()).toBe(false);
+
+        // Case 2: Not in players list
+        mockIsPending.value = false;
+        mockGameState.players = [{ id: 'other' }]; // 'me' is missing
+        wrapper = mount(GameChat);
+        await nextTick();
+        expect(wrapper.find('[data-testid="toggle-chat"]').exists()).toBe(false);
+
+        // Case 3: Confirmed (Visible)
+        mockIsPending.value = false;
+        mockGameState.players = [{ id: 'me' }];
+        wrapper = mount(GameChat);
+        await nextTick();
+        expect(wrapper.find('[data-testid="toggle-chat"]').exists()).toBe(true);
     });
 });

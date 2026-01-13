@@ -45,17 +45,19 @@ describe('Chat System Integration', () => {
             timestamp: Date.now()
         };
 
-        // Spy on broadcast
-        // We can spy on the connection's send method if we had access to the exact instance created in usePeer
-        // But usePeer creates new MockConnections internally when broadcasting? 
-        // No, Host keeps references to incoming connections.
+        // Simulate Client A sending JOIN
+        connA.emit('data', { type: 'JOIN', payload: { name: 'Client A' } });
+        await vi.advanceTimersByTimeAsync(10);
 
-        // Let's spy on the connection we created: connA.send
+        // Spy on broadcast
         const spySendA = vi.spyOn(connA, 'send');
 
         // Simulate another client B
         const connB = hostPeer.simulateIncomingConnection('clientB');
         await vi.advanceTimersByTimeAsync(100);
+        connB.emit('data', { type: 'JOIN', payload: { name: 'Client B' } });
+        await vi.advanceTimersByTimeAsync(10);
+
         const spySendB = vi.spyOn(connB, 'send');
 
         // Trigger Data on Host
@@ -97,6 +99,8 @@ describe('Chat System Integration', () => {
         const hostPeer = MockPeer.instances.find(p => p.id === Host.myId.value);
         const connA = hostPeer.simulateIncomingConnection('clientA');
         await vi.advanceTimersByTimeAsync(100);
+        connA.emit('data', { type: 'JOIN', payload: { name: 'Client A' } });
+        await vi.advanceTimersByTimeAsync(10);
         const spySendA = vi.spyOn(connA, 'send');
 
         // Send Valid Emote
@@ -137,5 +141,89 @@ describe('Chat System Integration', () => {
 
         expect(Client.gameMessages.value).toHaveLength(1);
         expect(Client.gameMessages.value[0].text).toBe('Hi');
+    });
+    it('Host Logic: Host sees client messages', async () => {
+        const Host = usePeer();
+        Host.initHost('Host', 'gemini', '');
+        await vi.advanceTimersByTimeAsync(100);
+        const hostPeer = MockPeer.instances.find(p => p.id === Host.myId.value);
+        const connA = hostPeer.simulateIncomingConnection('clientA');
+        await vi.advanceTimersByTimeAsync(100);
+
+        // Client sends CHAT_MESSAGE
+        connA.emit('data', {
+            type: 'CHAT_MESSAGE',
+            payload: {
+                id: 'msg_2',
+                senderId: 'clientA',
+                senderName: 'Client A',
+                text: 'Hello Host',
+                timestamp: Date.now()
+            }
+        });
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Assertion: Host's gameMessages should contain it
+        // Current Bug: Host relays but forgets to add to own list?
+        expect(Host.gameMessages.value).toHaveLength(1);
+        expect(Host.gameMessages.value[0].text).toBe('Hello Host');
+    });
+
+    it('State Reset: Clears messages on leaveGame', async () => {
+        const Peer = usePeer();
+        Peer.gameMessages.value = [{ id: '1', text: 'Persistent?' }];
+        expect(Peer.gameMessages.value).toHaveLength(1);
+
+        Peer.leaveGame();
+
+        expect(Peer.gameMessages.value).toHaveLength(0);
+    });
+    it('Regression: Host does not duplicate own messages', async () => {
+        const Host = usePeer();
+        Host.initHost('Host', 'gemini', '');
+        await vi.advanceTimersByTimeAsync(100);
+
+        // Host sends a message
+        Host.sendChatMessage('My Message');
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Should appear EXACTLY once
+        expect(Host.gameMessages.value).toHaveLength(1);
+        expect(Host.gameMessages.value[0].text).toBe('My Message');
+    });
+
+    it('Security: Host does not broadcast state/chat to Pending players', async () => {
+        const Host = usePeer();
+        // Enable Waiting Room
+        Host.initHost('Host', 'gemini', '', { enableWaitingRoom: true });
+        await vi.advanceTimersByTimeAsync(100);
+        const hostPeer = MockPeer.instances.find(p => p.id === Host.myId.value);
+
+        // Client connects
+        const connA = hostPeer.simulateIncomingConnection('clientPending');
+        await vi.advanceTimersByTimeAsync(100);
+
+        // Client sends JOIN
+        const spySendA = vi.spyOn(connA, 'send');
+        connA.emit('data', { type: 'JOIN', payload: { name: 'PendingGuy' } });
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Verify Client got PENDING message
+        expect(spySendA).toHaveBeenCalledWith(expect.objectContaining({ type: 'PENDING' }));
+        spySendA.mockClear();
+
+        // Host sends Chat
+        Host.sendChatMessage('Secret Info');
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Client should NOT receive it
+        expect(spySendA).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'CHAT_MESSAGE' }));
+
+        // Host triggers Broadcast
+        Host.startGame(); // Triggers broadcast
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Client should NOT receive SYNC
+        expect(spySendA).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SYNC' }));
     });
 });
