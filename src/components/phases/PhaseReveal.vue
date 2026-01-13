@@ -297,8 +297,7 @@ const verdict = computed(() => {
       <div
         v-else
         class="fixed bottom-8 text-center w-full text-slate-500 animate-pulse"
-      >
-      </div>
+      />
     </div>
   </div>
 </template>

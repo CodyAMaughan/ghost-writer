@@ -9,14 +9,16 @@ import { useStreamerMode } from '../../../src/composables/useStreamerMode';
 vi.mock('../../../src/composables/usePeer', () => {
     return {
         usePeer: () => ({
+            isHost: { value: true },
+            myId: { value: 'host' },
+            returnToLobby: vi.fn(),
+            gameMessages: { value: [] },
             gameState: {
                 roomCode: 'ABCD',
                 phase: 'LOBBY',
                 players: [],
                 currentTheme: 'viral'
-            },
-            isHost: { value: true },
-            returnToLobby: vi.fn()
+            }
         })
     };
 });

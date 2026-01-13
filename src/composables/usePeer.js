@@ -2,6 +2,7 @@ import { ref, reactive } from 'vue';
 import Peer from 'peerjs';
 import { fetchAI } from '../services/ai';
 import { THEMES } from '../config/themes';
+import { EMOTE_REGISTRY } from '../config/emotes';
 
 // Singleton State
 let revealTimer = null;
@@ -42,6 +43,10 @@ let peer = null;
 let hostConn = null;
 let wasKicked = false; // Track if we were intentionally disconnected
 let pendingGhostResolve = null;
+
+// Chat & Emote State
+const gameMessages = ref([]);
+const lastReaction = ref(null);
 
 export function usePeer() {
 
@@ -289,6 +294,28 @@ export function usePeer() {
                         });
                 }
                 break;
+            case 'CHAT_MESSAGE':
+                // Host relays to ALL connected clients
+                for (const conn of connMap.values()) {
+                    conn.send({ type: 'CHAT_MESSAGE', payload: msg.payload });
+                }
+                break;
+            case 'REACTION_EMOTE':
+                // 1. Validate against Registry
+                const emoteDef = EMOTE_REGISTRY[msg.payload.emoteId];
+                if (!emoteDef) return; // Invalid ID
+                if (emoteDef.locked) return; // Security check
+
+                // 2. Validate Rate Limit (Simple: 10 per sec? Or simpler 50ms cooldown?)
+                // For MVP: No complex token bucket yet, just relay interactions. 
+                // Rely on Client UI to rate limit, but Host drops obviously spammed stuff if needed.
+                // Let's implement basic "Is Valid" check.
+
+                // 3. Relay
+                for (const conn of connMap.values()) {
+                    conn.send({ type: 'REACTION_EMOTE', payload: msg.payload });
+                }
+                break;
         }
     };
 
@@ -333,10 +360,15 @@ export function usePeer() {
                 alert(msg.payload.message || 'Host denied entry');
                 window.location.reload();
             }
-        } else if (msg.type === 'KICKED') {
             wasKicked = true; // Mark as intentional disconnect
             alert(msg.payload.message || 'You have been removed from the game');
             window.location.reload();
+        } else if (msg.type === 'CHAT_MESSAGE') {
+            gameMessages.value.push(msg.payload);
+            // Limit history? 
+            if (gameMessages.value.length > 50) gameMessages.value.shift();
+        } else if (msg.type === 'REACTION_EMOTE') {
+            lastReaction.value = msg.payload;
         }
     };
 
@@ -602,6 +634,46 @@ export function usePeer() {
         }
     };
 
+    const sendChatMessage = (text) => {
+        if (!text.trim()) return;
+        const msg = {
+            id: Date.now().toString(),
+            senderId: myId.value,
+            senderName: myName.value,
+            text: text.trim(),
+            timestamp: Date.now()
+        };
+
+        if (isHost.value) {
+            // Host creates message, adds to local, broadcasts
+            handleHostData({ type: 'CHAT_MESSAGE', payload: msg }, myId.value);
+            // Also add locally because handleHostData just relays
+            gameMessages.value.push(msg);
+        } else {
+            hostConn && hostConn.send({ type: 'CHAT_MESSAGE', payload: msg });
+        }
+    };
+
+    const sendEmote = (emoteId) => {
+        const payload = {
+            emoteId,
+            senderId: myId.value
+        };
+        if (isHost.value) {
+            // Validate locally? 
+            handleHostData({ type: 'REACTION_EMOTE', payload }, myId.value);
+            // handleHostData checks registry. If valid, it relays.
+            // Does host need to see it? Yes, relay sends to connMap. Host isn't in connMap.
+            // We need to locally trigger it if valid.
+            const def = EMOTE_REGISTRY[emoteId];
+            if (def && !def.locked) {
+                lastReaction.value = payload;
+            }
+        } else {
+            hostConn && hostConn.send({ type: 'REACTION_EMOTE', payload });
+        }
+    };
+
     const resetGame = () => {
         if (revealTimer) clearInterval(revealTimer);
         // Reset all state to default
@@ -627,10 +699,8 @@ export function usePeer() {
             peer = null;
         }
 
-        connMap.clear();
-        isHost.value = false;
-        myId.value = '';
         isPending.value = false;
+        gameMessages.value = [];
         // We keep myName.value for convenience
     };
 
@@ -775,6 +845,10 @@ export function usePeer() {
 
             broadcastState();
         },
-        getGhostOptions
+        getGhostOptions,
+        sendChatMessage,
+        sendEmote,
+        gameMessages, // Reactive
+        lastReaction // Reactive
     };
 }

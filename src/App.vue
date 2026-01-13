@@ -11,6 +11,8 @@ import DiscordIcon from './components/icons/DiscordIcon.vue';
 import { THEMES } from './config/themes';
 import { useAudio } from './composables/useAudio';
 import { useStreamerMode } from './composables/useStreamerMode';
+import GameChat from './components/GameChat.vue';
+import ReactionOverlay from './components/ReactionOverlay.vue';
 
 const { gameState } = usePeer();
 const { isStreamerMode } = useStreamerMode();
@@ -255,5 +257,9 @@ onMounted(() => {
         <p>&copy; 2026 Ghost Writer Game. <span class="hidden md:inline"> | Deceive your friends.</span></p>
       </footer>
     </div>
+    
+    <!-- Global Components -->
+    <GameChat />
+    <ReactionOverlay />
   </div>
 </template>
