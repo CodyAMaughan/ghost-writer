@@ -15,6 +15,8 @@ The Single Source of Truth is `src/composables/usePeer.js`.
 *   **`gameState`**: A specific reactive object that contains the entire game world (players, phase, timer, submissions).
 *   **Sync:** The Host periodically (or on event) broadcasts the *entire* `gameState` (or a masked version during Voting) to all clients via the `SYNC` message type.
 *   **Modifications:** Only the Host may mutate `gameState` directly. Clients must send messages (`SUBMIT_ANSWER`, `SUBMIT_VOTE`) to request changes.
+*   **Player Management:** The Host can `kickPlayer(id)`, which removes them from `gameState` and broadcasts a `CHAT_DELETE_USER` message to scrub their chat history.
+*   **Chat System:** Messages are stored in `gameMessages`. Name updates (`UPDATE_NAME`) trigger retroactive updates to `senderName` in message history.
 
 ## 3. Theming Engine
 

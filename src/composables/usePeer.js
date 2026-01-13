@@ -2,6 +2,7 @@ import { ref, reactive } from 'vue';
 import Peer from 'peerjs';
 import { fetchAI } from '../services/ai';
 import { THEMES } from '../config/themes';
+import { EMOTE_REGISTRY } from '../config/emotes';
 
 // Singleton State
 let revealTimer = null;
@@ -42,6 +43,10 @@ let peer = null;
 let hostConn = null;
 let wasKicked = false; // Track if we were intentionally disconnected
 let pendingGhostResolve = null;
+
+// Chat & Emote State
+const gameMessages = ref([]);
+const lastReaction = ref(null);
 
 export function usePeer() {
 
@@ -256,7 +261,16 @@ export function usePeer() {
                             p.id !== senderId && p.name === msg.payload.name
                         );
                         if (!nameTaken && msg.payload.name.trim()) {
-                            player.name = msg.payload.name.trim();
+                            const newName = msg.payload.name.trim();
+                            player.name = newName;
+
+                            // Retroactive Update: Update history for this user
+                            gameMessages.value.forEach(m => {
+                                if (m.senderId === senderId) {
+                                    m.senderName = newName;
+                                }
+                            });
+
                             broadcastState();
                         }
                     }
@@ -288,6 +302,41 @@ export function usePeer() {
                             if (conn) conn.send({ type: 'GHOST_ERROR', payload: { message: err.message || "Failed to generate ghost" } });
                         });
                 }
+                break;
+            case 'CHAT_MESSAGE':
+                // Host sees it too
+                gameMessages.value.push(msg.payload);
+                if (gameMessages.value.length > 50) gameMessages.value.shift();
+
+                // Host relays to ADMITTED clients only
+                gameState.players.forEach(p => {
+                    const conn = connMap.get(p.id);
+                    if (conn) {
+                        conn.send({ type: 'CHAT_MESSAGE', payload: msg.payload });
+                    }
+                });
+                break;
+            case 'REACTION_EMOTE':
+                // 1. Validate against Registry
+                const emoteDef = EMOTE_REGISTRY[msg.payload.emoteId];
+                if (!emoteDef) return; // Invalid ID
+                if (emoteDef.locked) return; // Security check
+
+                // 2. Validate Rate Limit (Simple: 10 per sec? Or simpler 50ms cooldown?)
+                // For MVP: No complex token bucket yet, just relay interactions. 
+                // Rely on Client UI to rate limit, but Host drops obviously spammed stuff if needed.
+                // Let's implement basic "Is Valid" check.
+
+                // Host sees it
+                lastReaction.value = msg.payload;
+
+                // 3. Relay to ADMITTED clients only
+                gameState.players.forEach(p => {
+                    const conn = connMap.get(p.id);
+                    if (conn) {
+                        conn.send({ type: 'REACTION_EMOTE', payload: msg.payload });
+                    }
+                });
                 break;
         }
     };
@@ -333,10 +382,19 @@ export function usePeer() {
                 alert(msg.payload.message || 'Host denied entry');
                 window.location.reload();
             }
-        } else if (msg.type === 'KICKED') {
             wasKicked = true; // Mark as intentional disconnect
             alert(msg.payload.message || 'You have been removed from the game');
             window.location.reload();
+        } else if (msg.type === 'CHAT_MESSAGE') {
+            gameMessages.value.push(msg.payload);
+            // Limit history? 
+            if (gameMessages.value.length > 50) gameMessages.value.shift();
+        } else if (msg.type === 'REACTION_EMOTE') {
+            lastReaction.value = msg.payload;
+        } else if (msg.type === 'CHAT_DELETE_USER') {
+            // Remove messages from this user (Kicked/Banned)
+            const userId = msg.payload.userId;
+            gameMessages.value = gameMessages.value.filter(m => m.senderId !== userId);
         }
     };
 
@@ -361,9 +419,14 @@ export function usePeer() {
         // Yes, Host has god view. That's acceptable for this prototype.
         // Ideally Host UI would use the same masked logic for the "Player View".
 
-        for (const conn of connMap.values()) {
-            conn.send({ type: 'SYNC', payload: stateToSend });
-        }
+        // Only send to ADMITTED players (in gameState.players)
+        // This prevents Waiting Room candidates from seeing game state
+        gameState.players.forEach(p => {
+            const conn = connMap.get(p.id);
+            if (conn) {
+                conn.send({ type: 'SYNC', payload: stateToSend });
+            }
+        });
     };
 
     const addPlayer = (id, name, isHostPlayer) => {
@@ -373,11 +436,32 @@ export function usePeer() {
         broadcastState();
     };
 
-    const removePlayer = (id) => {
+    const removePlayer = (id, reason = '') => {
         const p = gameState.players.find(x => x.id === id);
         if (p) console.log(`Removing player ${id}:`, p.name);
 
         gameState.players = gameState.players.filter(p => p.id !== id);
+
+        // If KICKED, clean up chat history and notify others to do the same
+        if (reason === 'KICKED') {
+            gameMessages.value = gameMessages.value.filter(m => m.senderId !== id);
+
+            // Broadcast deletion command to all ADMITTED players
+            gameState.players.forEach(p => {
+                const conn = connMap.get(p.id);
+                if (conn) {
+                    conn.send({ type: 'CHAT_DELETE_USER', payload: { userId: id } });
+                }
+            });
+
+            // Close connection with specific reason if possible
+            const conn = connMap.get(id);
+            if (conn) {
+                conn.send({ type: 'REJECTED', payload: { message: 'You have been kicked by the host.' } });
+                setTimeout(() => conn.close(), 100); // Give time to flush
+            }
+        }
+
         connMap.delete(id);
 
         // Also remove from pending if applicable
@@ -391,6 +475,12 @@ export function usePeer() {
             checkRoundComplete();
         } else {
             broadcastState();
+        }
+    };
+
+    const kickPlayer = (id) => {
+        if (isHost.value) {
+            removePlayer(id, 'KICKED');
         }
     };
 
@@ -602,6 +692,45 @@ export function usePeer() {
         }
     };
 
+    const sendChatMessage = (text) => {
+        if (!text.trim()) return;
+        const msg = {
+            id: Date.now().toString(),
+            senderId: myId.value,
+            senderName: myName.value,
+            text: text.trim(),
+            timestamp: Date.now()
+        };
+
+        if (isHost.value) {
+            // Host creates message, adds to local, broadcasts
+            handleHostData({ type: 'CHAT_MESSAGE', payload: msg }, myId.value);
+            // Also add locally because handleHostData just relays -- NO, handleHostData now ingests!
+        } else {
+            hostConn && hostConn.send({ type: 'CHAT_MESSAGE', payload: msg });
+        }
+    };
+
+    const sendEmote = (emoteId) => {
+        const payload = {
+            emoteId,
+            senderId: myId.value
+        };
+        if (isHost.value) {
+            // Validate locally? 
+            handleHostData({ type: 'REACTION_EMOTE', payload }, myId.value);
+            // handleHostData checks registry. If valid, it relays.
+            // Does host need to see it? Yes, relay sends to connMap. Host isn't in connMap.
+            // We need to locally trigger it if valid.
+            const def = EMOTE_REGISTRY[emoteId];
+            if (def && !def.locked) {
+                lastReaction.value = payload;
+            }
+        } else {
+            hostConn && hostConn.send({ type: 'REACTION_EMOTE', payload });
+        }
+    };
+
     const resetGame = () => {
         if (revealTimer) clearInterval(revealTimer);
         // Reset all state to default
@@ -627,10 +756,11 @@ export function usePeer() {
             peer = null;
         }
 
-        connMap.clear();
-        isHost.value = false;
-        myId.value = '';
         isPending.value = false;
+        isPending.value = false;
+        gameMessages.value = [];
+        lastReaction.value = null; // Clear last reaction
+
         // We keep myName.value for convenience
     };
 
@@ -656,6 +786,7 @@ export function usePeer() {
         startGame,
         startRound,
         nextRound, // Exposed
+        kickPlayer, // Exposed for Host logic
         nextReveal,
         nextRevealStep,
         leaveGame, // Exposed
@@ -740,23 +871,7 @@ export function usePeer() {
 
             broadcastState();
         },
-        kickPlayer: (playerId) => {
-            if (!isHost.value) return;
 
-            // Get connection BEFORE removing player so we can send the message
-            const conn = connMap.get(playerId);
-            if (conn) {
-                conn.send({ type: 'KICKED', payload: { message: 'You have been removed from the game' } });
-
-                // Wait for message to flush before closing
-                setTimeout(() => {
-                    conn.close();
-                }, 500);
-            }
-
-            // Remove from active players (clears connMap and broadcasts)
-            removePlayer(playerId);
-        },
         returnToLobby: () => {
             if (!isHost.value) return;
 
@@ -775,6 +890,10 @@ export function usePeer() {
 
             broadcastState();
         },
-        getGhostOptions
+        getGhostOptions,
+        sendChatMessage,
+        sendEmote,
+        gameMessages, // Reactive
+        lastReaction // Reactive
     };
 }

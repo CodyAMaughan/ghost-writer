@@ -4,8 +4,24 @@ import PhaseReveal from '../../../src/components/phases/PhaseReveal.vue';
 import { usePeer } from '../../../src/composables/usePeer';
 
 // Mock usePeer
+const mockState = {
+    gameState: {
+        currentTheme: 'viral',
+        prompt: 'Test Prompt',
+        submissions: [],
+        revealedIndex: 0,
+        revealStep: 0,
+        players: []
+    },
+    isHost: { value: false },
+    myId: { value: 'player1' },
+    nextRevealStep: vi.fn(),
+    gameMessages: { value: [] },
+    lastReaction: { value: null }
+};
+
 vi.mock('../../../src/composables/usePeer', () => ({
-    usePeer: vi.fn()
+    usePeer: vi.fn(() => mockState)
 }));
 
 // Mock useAudio
@@ -33,11 +49,15 @@ describe('PhaseReveal.vue', () => {
                 prompt: 'Test Prompt',
                 submissions: [],
                 revealedIndex: 0,
-                revealStep: 0
+                revealStep: 0,
+                players: [],
+                usedPrompts: []
             },
             isHost: { value: false },
             myId: { value: 'player1' },
-            nextRevealStep: vi.fn()
+            nextRevealStep: vi.fn(),
+            gameMessages: { value: [] },
+            lastReaction: { value: null }
         };
         usePeer.mockReturnValue(mockPeerState);
     });

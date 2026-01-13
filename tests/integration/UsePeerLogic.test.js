@@ -88,8 +88,8 @@ describe('usePeer Logic', () => {
         host.kickPlayer('player-1');
 
         expect(mockPlayerConn.send).toHaveBeenCalledWith({
-            type: 'KICKED',
-            payload: expect.objectContaining({ message: expect.any(String) })
+            type: 'REJECTED',
+            payload: expect.objectContaining({ message: expect.stringContaining('kicked') })
         });
 
         expect(mockPlayerConn.close).not.toHaveBeenCalled();

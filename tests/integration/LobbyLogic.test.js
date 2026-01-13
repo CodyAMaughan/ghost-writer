@@ -204,7 +204,7 @@ describe('Lobby Logic Integration', () => {
         await vi.advanceTimersByTimeAsync(10); // Wait for close timeout
 
         expect(gameState.players).toHaveLength(1);
-        expect(clientConn.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'KICKED' }));
+        expect(clientConn.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'REJECTED' }));
     });
 
     it('Abort Game (Return to Lobby): Resets state but keeps players', async () => {
