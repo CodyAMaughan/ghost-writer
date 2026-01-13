@@ -227,4 +227,123 @@ describe('Chat System Integration', () => {
         // Client should NOT receive SYNC
         expect(spySendA).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SYNC' }));
     });
+
+
+    it('Reactive Name Change: Updates name in message history', async () => {
+        const Host = usePeer();
+        Host.initHost('Host', 'gemini', '');
+        await vi.advanceTimersByTimeAsync(100);
+        const hostPeer = MockPeer.instances.find(p => p.id === Host.myId.value);
+
+        // Client A Connects & Joins
+        const connA = hostPeer.simulateIncomingConnection('clientA');
+        await vi.advanceTimersByTimeAsync(100);
+        connA.emit('data', { type: 'JOIN', payload: { name: 'Alice' } });
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Client sends Message
+        const chatPayload = {
+            id: 'msg_alice',
+            senderId: 'clientA',
+            senderName: 'Alice',
+            text: 'I am Alice',
+            timestamp: Date.now()
+        };
+        connA.emit('data', { type: 'CHAT_MESSAGE', payload: chatPayload });
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Verify initial state
+        expect(Host.gameMessages.value.find(m => m.id === 'msg_alice').senderName).toBe('Alice');
+
+        // Client A updates name to "Bob"
+        connA.emit('data', { type: 'UPDATE_NAME', payload: { name: 'Bob' } });
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Verify history updated
+        expect(Host.gameMessages.value.find(m => m.id === 'msg_alice').senderName).toBe('Bob');
+    });
+
+    it('Persist Name After Leave: Updates persist even after disconnect', async () => {
+        const Host = usePeer();
+        Host.initHost('Host', 'gemini', '');
+        await vi.advanceTimersByTimeAsync(100);
+        const hostPeer = MockPeer.instances.find(p => p.id === Host.myId.value);
+
+        // Client A Connects, Joins, Chats
+        const connA = hostPeer.simulateIncomingConnection('clientA');
+        await vi.advanceTimersByTimeAsync(100);
+        connA.emit('data', { type: 'JOIN', payload: { name: 'Alice' } });
+        await vi.advanceTimersByTimeAsync(10);
+
+        connA.emit('data', {
+            type: 'CHAT_MESSAGE', payload: {
+                id: 'msg_persist', senderId: 'clientA', senderName: 'Alice', text: 'Hi', timestamp: Date.now()
+            }
+        });
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Change name to Bob
+        connA.emit('data', { type: 'UPDATE_NAME', payload: { name: 'Bob' } });
+        await vi.advanceTimersByTimeAsync(10);
+        expect(Host.gameMessages.value[0].senderName).toBe('Bob');
+
+        // Client A Disconnects
+        connA.close();
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Should STILL be "Bob" (Not revert to Alice, nor disappear)
+        expect(Host.gameMessages.value).toHaveLength(1);
+        expect(Host.gameMessages.value[0].senderName).toBe('Bob');
+    });
+
+    it('Message Deletion on Kick: Removes messages from kicked player', async () => {
+        const Host = usePeer();
+        Host.initHost('Host', 'gemini', '');
+        await vi.advanceTimersByTimeAsync(100);
+        const hostPeer = MockPeer.instances.find(p => p.id === Host.myId.value);
+
+        // Client A Connects
+        const connA = hostPeer.simulateIncomingConnection('clientA');
+        await vi.advanceTimersByTimeAsync(100);
+        connA.emit('data', { type: 'JOIN', payload: { name: 'BadGuy' } });
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Client A Chats
+        connA.emit('data', {
+            type: 'CHAT_MESSAGE', payload: {
+                id: 'msg_bad', senderId: 'clientA', senderName: 'BadGuy', text: 'Spam', timestamp: Date.now()
+            }
+        });
+        await vi.advanceTimersByTimeAsync(10);
+        expect(Host.gameMessages.value).toHaveLength(1);
+
+        // Spy on another client to ensure they get DELETE command
+        const connB = hostPeer.simulateIncomingConnection('clientB');
+        await vi.advanceTimersByTimeAsync(100);
+        connB.emit('data', { type: 'JOIN', payload: { name: 'ClientB' } });
+        await vi.advanceTimersByTimeAsync(10);
+        const spySendB = vi.spyOn(connB, 'send');
+
+        // Host Kicks Client A
+        // We simulate the Host calling the new exposed 'kickPlayer' method.
+        // This method should trigger the internal removePlayer with reason='KICKED'.
+
+        // Asserting error for now as `kickPlayer` doesn't exist.
+        if (Host.kickPlayer) {
+            Host.kickPlayer('clientA');
+        } else {
+            throw new Error("kickPlayer not implemented yet");
+        }
+
+        await vi.advanceTimersByTimeAsync(10);
+
+        // 1. Messages removed locally
+        expect(Host.gameMessages.value).toHaveLength(0);
+
+        // 2. Broadcast CHAT_DELETE_USER
+        expect(spySendB).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'CHAT_DELETE_USER',
+            payload: { userId: 'clientA' }
+        }));
+    });
 });

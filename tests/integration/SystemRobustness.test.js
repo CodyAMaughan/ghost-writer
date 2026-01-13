@@ -113,7 +113,7 @@ describe('System Robustness & Audio Integration', () => {
         // Verify Kick
         expect(gameState.players).toHaveLength(1);
         expect(p2Conn.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'KICKED'
+            type: 'REJECTED'
         }));
 
         // Verify Conn closed? logic says conn.close()

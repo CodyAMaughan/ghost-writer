@@ -61,6 +61,12 @@ watch(() => gameMessages.value.length, () => {
     }
 });
 
+const getDisplayName = (msg) => {
+    // Try to find the player in current state to get realtime name
+    const player = gameState.players.find(p => p.id === msg.senderId);
+    return player ? player.name : msg.senderName;
+};
+
 </script>
 
 <template>
@@ -147,7 +153,7 @@ watch(() => gameMessages.value.length, () => {
             <span
               class="font-bold opacity-75"
               :class="theme.colors.accent"
-            >{{ msg.senderName }}:</span>
+            >{{ getDisplayName(msg) }}:</span>
             <span class="text-slate-200 ml-1">{{ msg.text }}</span>
           </div>
           <div

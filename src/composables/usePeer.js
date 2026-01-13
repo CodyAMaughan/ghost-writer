@@ -261,7 +261,16 @@ export function usePeer() {
                             p.id !== senderId && p.name === msg.payload.name
                         );
                         if (!nameTaken && msg.payload.name.trim()) {
-                            player.name = msg.payload.name.trim();
+                            const newName = msg.payload.name.trim();
+                            player.name = newName;
+
+                            // Retroactive Update: Update history for this user
+                            gameMessages.value.forEach(m => {
+                                if (m.senderId === senderId) {
+                                    m.senderName = newName;
+                                }
+                            });
+
                             broadcastState();
                         }
                     }
@@ -382,6 +391,10 @@ export function usePeer() {
             if (gameMessages.value.length > 50) gameMessages.value.shift();
         } else if (msg.type === 'REACTION_EMOTE') {
             lastReaction.value = msg.payload;
+        } else if (msg.type === 'CHAT_DELETE_USER') {
+            // Remove messages from this user (Kicked/Banned)
+            const userId = msg.payload.userId;
+            gameMessages.value = gameMessages.value.filter(m => m.senderId !== userId);
         }
     };
 
@@ -423,11 +436,32 @@ export function usePeer() {
         broadcastState();
     };
 
-    const removePlayer = (id) => {
+    const removePlayer = (id, reason = '') => {
         const p = gameState.players.find(x => x.id === id);
         if (p) console.log(`Removing player ${id}:`, p.name);
 
         gameState.players = gameState.players.filter(p => p.id !== id);
+
+        // If KICKED, clean up chat history and notify others to do the same
+        if (reason === 'KICKED') {
+            gameMessages.value = gameMessages.value.filter(m => m.senderId !== id);
+
+            // Broadcast deletion command to all ADMITTED players
+            gameState.players.forEach(p => {
+                const conn = connMap.get(p.id);
+                if (conn) {
+                    conn.send({ type: 'CHAT_DELETE_USER', payload: { userId: id } });
+                }
+            });
+
+            // Close connection with specific reason if possible
+            const conn = connMap.get(id);
+            if (conn) {
+                conn.send({ type: 'REJECTED', payload: { message: 'You have been kicked by the host.' } });
+                setTimeout(() => conn.close(), 100); // Give time to flush
+            }
+        }
+
         connMap.delete(id);
 
         // Also remove from pending if applicable
@@ -441,6 +475,12 @@ export function usePeer() {
             checkRoundComplete();
         } else {
             broadcastState();
+        }
+    };
+
+    const kickPlayer = (id) => {
+        if (isHost.value) {
+            removePlayer(id, 'KICKED');
         }
     };
 
@@ -746,6 +786,7 @@ export function usePeer() {
         startGame,
         startRound,
         nextRound, // Exposed
+        kickPlayer, // Exposed for Host logic
         nextReveal,
         nextRevealStep,
         leaveGame, // Exposed
@@ -830,23 +871,7 @@ export function usePeer() {
 
             broadcastState();
         },
-        kickPlayer: (playerId) => {
-            if (!isHost.value) return;
 
-            // Get connection BEFORE removing player so we can send the message
-            const conn = connMap.get(playerId);
-            if (conn) {
-                conn.send({ type: 'KICKED', payload: { message: 'You have been removed from the game' } });
-
-                // Wait for message to flush before closing
-                setTimeout(() => {
-                    conn.close();
-                }, 500);
-            }
-
-            // Remove from active players (clears connMap and broadcasts)
-            removePlayer(playerId);
-        },
         returnToLobby: () => {
             if (!isHost.value) return;
 

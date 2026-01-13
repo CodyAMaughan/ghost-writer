@@ -84,8 +84,12 @@ Currently, chat messages store the `senderName` at the time of sending, acting a
     - In `handleHostData` -> `UPDATE_NAME`:
         - Update `gameState.players` (existing).
         - **NEW:** Update `gameMessages` entries matching `senderId`.
-    - In `removePlayer` (or new `kickPlayer` func):
-        - **NEW:** Browse `gameMessages`, remove items.
-        - **NEW:** Broadcast `CHAT_DELETE_USER` to clients.
+    - **Refactor `usePeer.js` Core:**
+        - Expose `kickPlayer(id)` function.
+        - Logic: Call `removePlayer(id, 'KICKED')`.
+    - In `removePlayer(id, reason)`:
+        - If `reason === 'KICKED'`:
+            - Browse `gameMessages`, remove items from kicked user.
+            - Broadcast `CHAT_DELETE_USER` to clients.
 2.  **Verify**:
     - Run `ChatSystem.test.js`.

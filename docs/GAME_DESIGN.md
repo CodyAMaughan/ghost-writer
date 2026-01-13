@@ -19,6 +19,7 @@
 
 ### 3.1 Lobby & Setup
 * **Host:** Creates room, selects AI Provider, configures settings (Round Timer, Password, Waiting Room).
+* **Moderation:** Host can **Kick** players, which removes them and scrubs their messages from the chat.
 * **Joiners:** Connect via 4-letter Room Code.
 * **Avatars:** Players select from 12 preset avatars (`src/config/avatars.js`).
 
@@ -38,6 +39,7 @@
 * Anonymized answers displayed.
 * Players vote **HUMAN** (Left) or **BOT** (Right).
 * Players *cannot* vote on their own submission.
+* **Chat:** Players can discuss votes in real-time. Chat names update automatically if a player changes their name.
 
 **Phase D: Reveal**
 * "Drumroll" animation revealing answers one by one.
