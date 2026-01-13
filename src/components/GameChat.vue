@@ -69,28 +69,31 @@ watch(() => gameMessages.value.length, () => {
     class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2"
   >
     <!-- Toggle Buttons (When Closed) -->
-    <div v-if="!isOpen" class="flex flex-col gap-2 items-end">
-        <!-- Smiley (Emotes) -->
-        <button 
-          class="p-3 rounded-full shadow-lg transition-transform hover:scale-110 text-white"
-          :class="theme.colors.button"
-          aria-label="Open Emotes"
-          data-testid="toggle-emotes"
-          @click="toggleChat('EMOTES')"
-        >
-          <Smile class="w-6 h-6" />
-        </button>
+    <div
+      v-if="!isOpen"
+      class="flex flex-col gap-2 items-end"
+    >
+      <!-- Smiley (Emotes) -->
+      <button 
+        class="p-3 rounded-full shadow-lg transition-transform hover:scale-110 text-white"
+        :class="theme.colors.button"
+        aria-label="Open Emotes"
+        data-testid="toggle-emotes"
+        @click="toggleChat('EMOTES')"
+      >
+        <Smile class="w-6 h-6" />
+      </button>
 
-        <!-- Chat Bubble -->
-        <button 
-          class="p-3 rounded-full shadow-lg transition-transform hover:scale-110"
-          :class="[theme.colors.button, 'text-white']"
-          aria-label="Open Chat"
-          data-testid="toggle-chat"
-          @click="toggleChat('CHAT')"
-        >
-          <MessageCircle class="w-6 h-6" />
-        </button>
+      <!-- Chat Bubble -->
+      <button 
+        class="p-3 rounded-full shadow-lg transition-transform hover:scale-110"
+        :class="[theme.colors.button, 'text-white']"
+        aria-label="Open Chat"
+        data-testid="toggle-chat"
+        @click="toggleChat('CHAT')"
+      >
+        <MessageCircle class="w-6 h-6" />
+      </button>
     </div>
 
     <!-- Chat Window -->
@@ -169,7 +172,7 @@ watch(() => gameMessages.value.length, () => {
             data-testid="input-smiley"
             @click="openEmotes"
           >
-             <Smile class="w-5 h-5" />
+            <Smile class="w-5 h-5" />
           </button>
           
           <button 

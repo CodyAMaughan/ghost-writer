@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { EMOTE_REGISTRY } from '../config/emotes';
 

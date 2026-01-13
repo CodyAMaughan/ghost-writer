@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { usePeer } from '../../src/composables/usePeer';
 import { MockPeer } from '../mocks/peerjs';
-import { EMOTE_REGISTRY } from '../../src/config/emotes';
+
 
 // Mock PeerJS
 vi.mock('peerjs', async () => {
@@ -50,7 +50,8 @@ describe('Chat System Integration', () => {
         await vi.advanceTimersByTimeAsync(10);
 
         // Spy on broadcast
-        const spySendA = vi.spyOn(connA, 'send');
+        // Spy on broadcast
+        vi.spyOn(connA, 'send');
 
         // Simulate another client B
         const connB = hostPeer.simulateIncomingConnection('clientB');
