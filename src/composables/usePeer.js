@@ -1,8 +1,10 @@
 import { ref, reactive } from 'vue';
 import Peer from 'peerjs';
-import { fetchAI } from '../services/ai';
 import { THEMES } from '../config/themes';
 import { EMOTE_REGISTRY } from '../config/emotes';
+import { getIceServers } from './peer/useIceServers';
+import { useChat } from './peer/useChat';
+import { useGhostAI } from './peer/useGhostAI';
 
 // Singleton State
 let revealTimer = null;
@@ -42,13 +44,14 @@ const connMap = new Map();
 let peer = null;
 let hostConn = null;
 let wasKicked = false; // Track if we were intentionally disconnected
-let pendingGhostResolve = null;
 
-// Chat & Emote State
-const gameMessages = ref([]);
-const lastReaction = ref(null);
+
+// Chat & Emote State - MOVED to useChat.js
+
 
 export function usePeer() {
+    const { gameMessages, lastReaction, handleChatData, updateHistoryName, resetChat } = useChat();
+    const { generateOptions, createGhostRequest, resolveGhostRequest } = useGhostAI();
 
     // --- HOST LOGIC ---
 
@@ -72,7 +75,7 @@ export function usePeer() {
         }
     };
 
-    const initHost = (name, provider, apiKey, lobbySettings = {}) => {
+    const initHost = async (name, provider, apiKey, lobbySettings = {}) => {
         // CRITICAL: Clear any stale state from previous sessions
         resetGame();
 
@@ -92,30 +95,8 @@ export function usePeer() {
 
         // Namespace the Peer ID to avoid collisions with other users of the public PeerJS server
         // logic: ghost-writer-[CODE]
-        // Namespace the Peer ID to avoid collisions with other users of the public PeerJS server
-        // logic: ghost-writer-[CODE]
-        const iceServers = [
-            { urls: 'stun:stun.l.google.com:19302' }, // Free STUN
-        ];
 
-        // 1. JSON Config (Advanced)
-        if (import.meta.env.VITE_ICE_SERVERS) {
-            try {
-                const custom = JSON.parse(import.meta.env.VITE_ICE_SERVERS);
-                iceServers.push(...custom);
-            } catch (e) {
-                console.error("Failed to parse VITE_ICE_SERVERS", e);
-            }
-        }
-
-        // 2. Simple TURN Config (Easy Mode)
-        if (import.meta.env.VITE_TURN_URL && import.meta.env.VITE_TURN_USERNAME) {
-            iceServers.push({
-                urls: import.meta.env.VITE_TURN_URL,
-                username: import.meta.env.VITE_TURN_USERNAME,
-                credential: import.meta.env.VITE_TURN_PASSWORD
-            });
-        }
+        const iceServers = await getIceServers();
 
         const peerConfig = {
             config: { iceServers }
@@ -144,7 +125,7 @@ export function usePeer() {
     const GAME_ID_PREFIX = 'ghost-writer-';
 
     // --- CLIENT LOGIC ---
-    const joinGame = (code, name, password = '') => {
+    const joinGame = async (code, name, password = '') => {
         isHost.value = false;
         myName.value = name;
         gameState.roomCode = code;
@@ -157,28 +138,7 @@ export function usePeer() {
             peer = null;
         }
 
-        const iceServers = [
-            { urls: 'stun:stun.l.google.com:19302' }, // Free STUN
-        ];
-
-        // 1. JSON Config (Advanced)
-        if (import.meta.env.VITE_ICE_SERVERS) {
-            try {
-                const custom = JSON.parse(import.meta.env.VITE_ICE_SERVERS);
-                iceServers.push(...custom);
-            } catch (e) {
-                console.error("Failed to parse VITE_ICE_SERVERS", e);
-            }
-        }
-
-        // 2. Simple TURN Config (Easy Mode)
-        if (import.meta.env.VITE_TURN_URL && import.meta.env.VITE_TURN_USERNAME) {
-            iceServers.push({
-                urls: import.meta.env.VITE_TURN_URL,
-                username: import.meta.env.VITE_TURN_USERNAME,
-                credential: import.meta.env.VITE_TURN_PASSWORD
-            });
-        }
+        const iceServers = await getIceServers();
 
         const peerConfig = {
             config: { iceServers }
@@ -320,11 +280,8 @@ export function usePeer() {
                             player.name = newName;
 
                             // Retroactive Update: Update history for this user
-                            gameMessages.value.forEach(m => {
-                                if (m.senderId === senderId) {
-                                    m.senderName = newName;
-                                }
-                            });
+                            // Retroactive Update: Update history for this user
+                            updateHistoryName(senderId, newName);
 
                             broadcastState();
                         }
@@ -333,35 +290,26 @@ export function usePeer() {
                 break;
             case 'REQUEST_GHOST':
                 // Host acts as proxy
-                let systemPrompt = "";
-
-                if (msg.payload.agentId === 'custom') {
-                    systemPrompt = (msg.payload.systemPrompt || "You are a generic helper.") + " Keep it under 15 words.";
-                } else {
-                    const theme = THEMES[gameState.currentTheme];
-                    const agentDef = theme ? theme.agents.find(a => a.id === msg.payload.agentId) : null;
-                    if (agentDef) systemPrompt = agentDef.systemPrompt;
-                }
-
-                if (systemPrompt) {
-                    // Add constraint here for safety if not trusted source? 
-                    // Service layer puts instruction at end anyway.
-                    fetchAI(gameState.settings.provider, gameState.settings.apiKey, msg.payload.prompt, systemPrompt)
-                        .then(options => {
-                            const conn = connMap.get(senderId);
-                            if (conn) conn.send({ type: 'GHOST_OPTIONS', payload: { options } });
-                        })
-                        .catch(err => {
-                            console.error("Ghost Gen Error", err);
-                            const conn = connMap.get(senderId);
-                            if (conn) conn.send({ type: 'GHOST_ERROR', payload: { message: err.message || "Failed to generate ghost" } });
-                        });
-                }
+                generateOptions(
+                    gameState.settings,
+                    msg.payload.prompt,
+                    gameState.currentTheme,
+                    msg.payload.agentId,
+                    msg.payload.systemPrompt
+                )
+                    .then(options => {
+                        const conn = connMap.get(senderId);
+                        if (conn) conn.send({ type: 'GHOST_OPTIONS', payload: { options } });
+                    })
+                    .catch(err => {
+                        console.error("Ghost Gen Error", err);
+                        const conn = connMap.get(senderId);
+                        if (conn) conn.send({ type: 'GHOST_ERROR', payload: { message: err.message || "Failed to generate ghost" } });
+                    });
                 break;
             case 'CHAT_MESSAGE':
                 // Host sees it too
-                gameMessages.value.push(msg.payload);
-                if (gameMessages.value.length > 50) gameMessages.value.shift();
+                handleChatData(msg);
 
                 // Host relays to ADMITTED clients only
                 gameState.players.forEach(p => {
@@ -377,13 +325,10 @@ export function usePeer() {
                 if (!emoteDef) return; // Invalid ID
                 if (emoteDef.locked) return; // Security check
 
-                // 2. Validate Rate Limit (Simple: 10 per sec? Or simpler 50ms cooldown?)
-                // For MVP: No complex token bucket yet, just relay interactions. 
-                // Rely on Client UI to rate limit, but Host drops obviously spammed stuff if needed.
-                // Let's implement basic "Is Valid" check.
+                // 2. Relay logic remains the same (throttling etc)
 
-                // Host sees it
-                lastReaction.value = msg.payload;
+                // Host sees it (via Store)
+                handleChatData(msg);
 
                 // 3. Relay to ADMITTED clients only
                 gameState.players.forEach(p => {
@@ -407,10 +352,7 @@ export function usePeer() {
                 isPending.value = false; // No longer pending
             }
         } else if (msg.type === 'GHOST_OPTIONS') {
-            if (pendingGhostResolve) {
-                pendingGhostResolve(msg.payload.options);
-                pendingGhostResolve = null;
-            }
+            resolveGhostRequest(msg.payload.options);
         } else if (msg.type === 'AUTH_ERROR') {
             wasKicked = true; // Prevent "host disconnected" message
             connectionError.value = msg.payload.message || 'Incorrect password';
@@ -441,15 +383,11 @@ export function usePeer() {
             alert(msg.payload.message || 'You have been removed from the game');
             window.location.reload();
         } else if (msg.type === 'CHAT_MESSAGE') {
-            gameMessages.value.push(msg.payload);
-            // Limit history? 
-            if (gameMessages.value.length > 50) gameMessages.value.shift();
+            handleChatData(msg);
         } else if (msg.type === 'REACTION_EMOTE') {
-            lastReaction.value = msg.payload;
+            handleChatData(msg);
         } else if (msg.type === 'CHAT_DELETE_USER') {
-            // Remove messages from this user (Kicked/Banned)
-            const userId = msg.payload.userId;
-            gameMessages.value = gameMessages.value.filter(m => m.senderId !== userId);
+            handleChatData(msg);
         }
     };
 
@@ -499,7 +437,7 @@ export function usePeer() {
 
         // If KICKED, clean up chat history and notify others to do the same
         if (reason === 'KICKED') {
-            gameMessages.value = gameMessages.value.filter(m => m.senderId !== id);
+            handleChatData({ type: 'CHAT_DELETE_USER', payload: { userId: id } });
 
             // Broadcast deletion command to all ADMITTED players
             gameState.players.forEach(p => {
@@ -728,22 +666,19 @@ export function usePeer() {
 
     const getGhostOptions = (agentId, customSystemPrompt = null) => {
         if (isHost.value) {
-            // Call directly
-            let sys = "";
-            if (agentId === 'custom') {
-                sys = (customSystemPrompt || "You are a generic helper.") + " Keep it under 15 words.";
-            } else {
-                const theme = THEMES[gameState.currentTheme] || THEMES.viral;
-                const agentDef = theme.agents.find(a => a.id === agentId);
-                sys = agentDef ? agentDef.systemPrompt : "";
-            }
-            return fetchAI(gameState.settings.provider, gameState.settings.apiKey, gameState.prompt, sys);
+            // Call directly handled by generateOptions
+            return generateOptions(
+                gameState.settings,
+                gameState.prompt,
+                gameState.currentTheme,
+                agentId,
+                customSystemPrompt
+            );
         } else {
             // Ask Host
-            return new Promise((resolve) => {
-                pendingGhostResolve = resolve;
-                hostConn.send({ type: 'REQUEST_GHOST', payload: { agentId, prompt: gameState.prompt, systemPrompt: customSystemPrompt } });
-            });
+            const promise = createGhostRequest();
+            hostConn && hostConn.send({ type: 'REQUEST_GHOST', payload: { agentId, prompt: gameState.prompt, systemPrompt: customSystemPrompt } });
+            return promise;
         }
     };
 
@@ -787,6 +722,7 @@ export function usePeer() {
     };
 
     const resetGame = () => {
+        resetChat(); // Reset chat state
         if (revealTimer) clearInterval(revealTimer);
         // Reset all state to default
         gameState.phase = 'LOBBY';
@@ -812,9 +748,7 @@ export function usePeer() {
         }
 
         isPending.value = false;
-        isPending.value = false;
-        gameMessages.value = [];
-        lastReaction.value = null; // Clear last reaction
+        // gameMessages & lastReaction cleared by resetGame -> resetChat
 
         // We keep myName.value for convenience
     };

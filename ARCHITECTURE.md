@@ -36,6 +36,7 @@ Visuals are strictly controlled by `src/config/themes.js`.
 
 *   `src/components/`: Vue components (GameScreen, Lobby).
 *   `src/composables/`: Shared logic (`usePeer.js`, `useAudio.js`, `useStreamerMode.js`).
+*   `src/composables/peer/`: Modularized peer logic (`useIceServers.js`, `useChat.js`, `useGhostAI.js`).
 *   `src/config/`: Static configuration (`themes.js`, `avatars.js`).
 *   `src/services/`: External API handlers (`ai.js`).
 *   `tests/`: Integration and Unit tests (Vitest).
