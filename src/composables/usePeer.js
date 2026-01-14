@@ -8,6 +8,8 @@ import { useGhostAI } from './peer/useGhostAI';
 
 // Singleton State
 let revealTimer = null;
+let promptTimeout = null;
+let currentTimerInterval = null;
 
 const gameState = reactive({
     phase: 'LOBBY',
@@ -469,8 +471,18 @@ export function usePeer() {
         if (gameState.phase !== 'LOBBY' && gameState.phase !== 'FINISH') {
             broadcastState();
             // Check if this unblocks the round
-            checkVotingComplete();
-            checkRoundComplete();
+            if (gameState.phase === 'VOTING') {
+                // Check if all remaining players have voted
+                if (gameState.players.every(p => gameState.finishedVotingIDs.includes(p.id))) {
+                    startReveal();
+                }
+            } else if (gameState.phase === 'INPUT') {
+                // Check if all remaining players have submitted
+                if (gameState.players.every(p => gameState.submissions.some(s => s.authorId === p.id))) {
+                    if (currentTimerInterval) clearInterval(currentTimerInterval);
+                    startVoting();
+                }
+            }
         } else {
             broadcastState();
         }
@@ -525,18 +537,29 @@ export function usePeer() {
         broadcastState();
 
         // 5s to read prompt, then INPUT
-        if (promptTimeout) clearTimeout(promptTimeout);
+        if (promptTimeout) {
+            console.log('[TIMER DEBUG] startRound: Clearing existing promptTimeout', promptTimeout);
+            clearTimeout(promptTimeout);
+        }
+
         promptTimeout = setTimeout(() => {
+            console.log('[TIMER DEBUG] promptTimeout FIRED. Current Phase:', gameState.phase, 'Timer ID was:', promptTimeout);
+
+            // Defensive Check: If we are not in PROMPT phase anymore (e.g. LOBBY), DO NOT proceed.
+            if (gameState.phase !== 'PROMPT') {
+                console.log('[TIMER DEBUG] Phase mismatch (expected PROMPT, got ' + gameState.phase + '), checking logic aborted.');
+                return;
+            }
+
             gameState.timer = gameState.settings.roundDuration;
             gameState.phase = 'INPUT';
             broadcastState();
             startTimer();
         }, 5000);
+        console.log('[TIMER DEBUG] startRound: Set new promptTimeout', promptTimeout);
     };
 
-    // Singleton State
-    let promptTimeout = null;
-    let currentTimerInterval = null;
+    // Singleton State (Moved to line 11)
 
     const startTimer = () => {
         if (!isHost.value) return;
@@ -730,12 +753,14 @@ export function usePeer() {
     };
 
     const clearTimers = () => {
+        console.log('[TIMER DEBUG] clearTimers called. promptTimeout:', promptTimeout, 'currentTimerInterval:', currentTimerInterval);
         if (revealTimer) clearInterval(revealTimer);
         if (currentTimerInterval) clearInterval(currentTimerInterval);
         if (promptTimeout) clearTimeout(promptTimeout);
     };
 
     const resetGame = () => {
+        console.log('[TIMER DEBUG] resetGame called');
         resetChat(); // Reset chat state
         clearTimers();
         // Reset all state to default
@@ -768,6 +793,7 @@ export function usePeer() {
     };
 
     const leaveGame = () => {
+        console.log('[TIMER DEBUG] leaveGame called. isHost:', isHost.value);
         if (isHost.value) {
             // Notify all players that the lobby is closing
             Object.values(connMap).forEach(conn => { // connMap stores connections? No, map values are conns
@@ -786,9 +812,11 @@ export function usePeer() {
 
             // Give a tiny delay for messages to flush before destroying peer?
             setTimeout(() => {
+                console.log('[DEBUG] leaveGame: Calling resetGame after timeout');
                 resetGame();
             }, 100);
         } else {
+            console.log('[DEBUG] leaveGame: Client calling resetGame immediately');
             resetGame();
         }
     };

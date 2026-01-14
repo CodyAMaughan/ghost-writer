@@ -1,9 +1,10 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { ref } from 'vue';
-import Lobby from '../../../src/components/Lobby.vue';
+import { ref, reactive } from 'vue';
+import GameController from '../../../src/components/GameController.vue';
 import { useStreamerMode } from '../../../src/composables/useStreamerMode';
+import { usePeer } from '../../../src/composables/usePeer';
 
 // Mock clipboard
 Object.assign(navigator, {
@@ -22,36 +23,14 @@ Object.defineProperty(window, 'location', {
     writable: true
 });
 
-vi.mock('../../../src/composables/usePeer', () => {
-    return {
-        usePeer: () => ({
-            gameState: {
-                roomCode: 'ABCD',
-                phase: 'LOBBY',
-                players: [{ id: 'host', name: 'Host', isHost: true, avatarId: 0 }],
-                pendingPlayers: [],
-                currentTheme: 'viral',
-                settings: { enableWaitingRoom: false }
-            },
-            isHost: ref(true),
-            myId: ref('host'),
-            isPending: ref(false),
+import { MockPeer } from '../../mocks/peerjs';
 
-            // Functions
-            initHost: vi.fn(),
-            joinGame: vi.fn(),
-            startGame: vi.fn(),
-            leaveGame: vi.fn(),
-            returnToLobby: vi.fn(),
-            setTheme: vi.fn(),
-            updateAvatar: vi.fn(),
-            approvePendingPlayer: vi.fn(),
-            rejectPendingPlayer: vi.fn(),
-            kickPlayer: vi.fn(),
-            connectionError: ref('')
-        })
-    };
+// --- Integration Setup (Mock PeerJS, not usePeer) ---
+vi.mock('peerjs', async () => {
+    const { MockPeer } = await import('../../mocks/peerjs');
+    return { default: MockPeer };
 });
+
 
 // Mock QRCode component
 vi.mock('qrcode.vue', () => ({
@@ -66,11 +45,29 @@ vi.mock('../../../src/composables/useAudio', () => ({
     })
 }));
 
+const resetState = () => {
+    const { gameState, leaveGame, isHost, myId, connectionError, isPending } = usePeer();
+    try { leaveGame(); } catch { }
+
+    // Force reset state
+    gameState.phase = 'LOBBY';
+    gameState.roomCode = '';
+    gameState.players = [];
+    isHost.value = false;
+    myId.value = '';
+    connectionError.value = '';
+    isPending.value = false;
+
+    MockPeer.reset();
+    vi.clearAllMocks();
+};
+
 describe('Lobby - Streamer Mode', () => {
     beforeEach(() => {
+        resetState();
+        vi.useFakeTimers();
         const { isStreamerMode } = useStreamerMode();
         isStreamerMode.value = false;
-        vi.clearAllMocks();
     });
 
     const navigateToLobby = async (wrapper) => {
@@ -80,24 +77,32 @@ describe('Lobby - Streamer Mode', () => {
         // 2. Fill Name
         await wrapper.find('[data-testid="host-name-input"]').setValue('Host');
 
-        // 3. Click Create Game
-        // Mock initHost implies success, logic sets mode='WAITING'
+        // 3. Click Create Game (Real initHost)
         await wrapper.find('[data-testid="host-init-btn"]').trigger('click');
+
+        // 4. Simulate PeerJS 'open' event to complete initHost
+        await vi.advanceTimersByTimeAsync(100);
+
         await wrapper.vm.$nextTick();
     };
 
     it('displays full code when streamer mode off', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
         await navigateToLobby(wrapper);
-        expect(wrapper.text()).toContain('ABCD');
-        expect(wrapper.find('[data-testid="lobby-code-display"]').text()).toBe('ABCD');
+
+        const { gameState } = usePeer();
+        const code = gameState.roomCode;
+        expect(code).toBeTruthy(); // Should exist
+
+        expect(wrapper.text()).toContain(code);
+        expect(wrapper.find('[data-testid="lobby-code-display"]').text()).toBe(code);
     });
 
     it('masks code when streamer mode on', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
         await navigateToLobby(wrapper);
-        const { isStreamerMode } = useStreamerMode();
 
+        const { isStreamerMode } = useStreamerMode();
         isStreamerMode.value = true;
         await wrapper.vm.$nextTick();
 
@@ -105,7 +110,7 @@ describe('Lobby - Streamer Mode', () => {
     });
 
     it('hides/blurs QR code when streamer mode on', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
         await navigateToLobby(wrapper);
 
         // QR Code is currently commented out in the component, so it should NOT exist
@@ -136,9 +141,12 @@ describe('Lobby - Streamer Mode', () => {
     });
 
     it('copies real code and shows feedback', async () => {
-        vi.useFakeTimers();
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
         await navigateToLobby(wrapper);
+
+        const { gameState } = usePeer();
+        const code = gameState.roomCode;
+
         const { isStreamerMode } = useStreamerMode();
         isStreamerMode.value = true;
         await wrapper.vm.$nextTick();
@@ -146,16 +154,16 @@ describe('Lobby - Streamer Mode', () => {
         const copyBtn = wrapper.find('#copy-code-btn');
         await copyBtn.trigger('click');
 
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ABCD');
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(code);
         await wrapper.vm.$nextTick();
         expect(wrapper.text()).toContain('COPIED!');
 
-        vi.advanceTimersByTime(1000);
+        // Advance timers to hide copied message
+        await vi.advanceTimersByTimeAsync(1000);
         await wrapper.vm.$nextTick();
+
         expect(wrapper.text()).not.toContain('COPIED!');
         expect(wrapper.text()).toContain('Access Code');
-
-        vi.useRealTimers();
     });
 
 });

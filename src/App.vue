@@ -1,8 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
 import { usePeer } from './composables/usePeer';
-import Lobby from './components/Lobby.vue';
-import GameScreen from './components/GameScreen.vue';
+import GameController from './components/GameController.vue';
 import RulesModal from './components/RulesModal.vue';
 import CustomAgentEditor from './components/CustomAgentEditor.vue';
 import SettingsModal from './components/SettingsModal.vue';
@@ -234,9 +233,7 @@ onMounted(() => {
       </header>
 
       <main class="flex-grow flex flex-col">
-        <component 
-          :is="gameState.phase === 'LOBBY' ? Lobby : GameScreen" 
-        />
+        <GameController />
       </main>
       
       <RulesModal

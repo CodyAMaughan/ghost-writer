@@ -3,28 +3,38 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import App from '../../../src/App.vue';
 import { useStreamerMode } from '../../../src/composables/useStreamerMode';
+import { MockPeer } from '../../mocks/peerjs';
+import { usePeer } from '../../../src/composables/usePeer';
+import { reactive, ref } from 'vue';
 
-
-// Mock dependencies
-vi.mock('../../../src/composables/usePeer', () => {
-    return {
-        usePeer: () => ({
-            isHost: { value: true },
-            myId: { value: 'host' },
-            returnToLobby: vi.fn(),
-            gameMessages: { value: [] },
-            gameState: {
-                roomCode: 'ABCD',
-                phase: 'LOBBY',
-                players: [],
-                currentTheme: 'viral'
-            }
-        })
-    };
+// --- Integration Setup (Mock PeerJS, not usePeer) ---
+vi.mock('peerjs', async () => {
+    // Correct relative path to the shared mock
+    const { MockPeer } = await import('../../mocks/peerjs');
+    return { default: MockPeer };
 });
+
+
+const resetState = () => {
+    const { gameState, leaveGame, isHost, myId, connectionError, isPending } = usePeer();
+    try { leaveGame(); } catch { }
+
+    // Force reset state
+    gameState.phase = 'LOBBY';
+    gameState.roomCode = 'ABCD'; // Default code for this test file
+    gameState.players = [];
+    isHost.value = true;
+    myId.value = 'host';
+    connectionError.value = '';
+    isPending.value = false;
+
+    MockPeer.reset();
+    vi.clearAllMocks();
+};
 
 describe('App - Streamer Mode', () => {
     beforeEach(() => {
+        resetState();
         const { isStreamerMode } = useStreamerMode();
         isStreamerMode.value = false;
     });

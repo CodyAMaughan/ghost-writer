@@ -4,7 +4,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import GameScreen from '../../../src/components/GameScreen.vue';
 import { THEMES } from '../../../src/config/themes';
 import { reactive, nextTick, ref } from 'vue';
-import Lobby from '../../../src/components/Lobby.vue';
+import GameController from '../../../src/components/GameController.vue';
 
 // --- State Factory ---
 // Ensures clean state for every test
@@ -21,7 +21,8 @@ const createDefaultState = () => ({
     settings: { roundDuration: 60, provider: 'gemini', apiKey: '' },
     finishedVotingIDs: [],
     revealedIndex: -1,
-    revealStep: 0
+    revealStep: 0,
+    pendingPlayers: [] // initializing missing property
 });
 
 // We use a reactive object that we will mutate/reset in beforeEach
@@ -127,7 +128,7 @@ describe('Lobby Integration', () => {
     });
 
     it('Host can initialize game', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         await wrapper.find('[data-testid="landing-host-btn"]').trigger('click');
 
@@ -152,7 +153,7 @@ describe('Lobby Integration', () => {
     });
 
     it('Client can join game', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
         await wrapper.find('[data-testid="join-name-input"]').setValue('JoinUser');
         await wrapper.find('[data-testid="join-code-input"]').setValue('ABCD');
@@ -163,14 +164,10 @@ describe('Lobby Integration', () => {
     });
 
     it('Host can start game when players present', async () => {
-        // Setup waiting room state
-        mockGameState.players = [
-            { id: 'p1', name: 'Host', isHost: true },
-            { id: 'p2', name: 'Client', isHost: false }
-        ];
+        // Start with clean state (no players) so we stay on Landing Page
         mockGameState.roomCode = 'CODE';
 
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         // Navigate to Waiting Room UI (manually triggering mode change simulation)
         // In real app, initHost sets this. We bypassed initHost in this test setup.
@@ -190,6 +187,11 @@ describe('Lobby Integration', () => {
 
         await nextTick();
 
+        // Now user has navigated to Waiting Room (Lobby.vue)
+        // Inject a second player to enable the Start Game button
+        mockGameState.players.push({ id: 'p2', name: 'Client', isHost: false });
+        await nextTick();
+
         const startBtn = wrapper.find('[data-testid="start-game-btn"]');
         expect(startBtn.exists()).toBe(true);
         expect(startBtn.attributes('disabled')).toBeUndefined();
@@ -199,13 +201,10 @@ describe('Lobby Integration', () => {
     });
 
     it('sets Nameplate interactivity to true for own player in Lobby', async () => {
-        // Setup state with multiple players
-        mockGameState.players = [
-            { id: 'p1', name: 'Me', isHost: true },
-            { id: 'p2', name: 'Other', isHost: false }
-        ];
+        // Start with clean state
+        mockGameState.roomCode = 'CODE';
 
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         // Manually navigate to Waiting Room to ensure Nameplates are rendered
         // 1. Host Click
@@ -223,6 +222,11 @@ describe('Lobby Integration', () => {
 
         // 4. Init Host (Triggers transition to WAITING mode)
         await wrapper.find('[data-testid="host-init-btn"]').trigger('click');
+        await nextTick();
+
+        // Now in Waiting Room (Lobby.vue)
+        // Inject a second player to test interaction with others
+        mockGameState.players.push({ id: 'p2', name: 'Other', isHost: false });
         await nextTick();
 
         // Find my nameplate

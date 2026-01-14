@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePeer, resetState } from '../../../src/composables/usePeer'; // Import the mocked version
 import { mount } from '@vue/test-utils';
-import Lobby from '../../../src/components/Lobby.vue';
+import GameController from '../../../src/components/GameController.vue';
 
 // --- Mock usePeer following the pattern from Integration.test.js ---
 vi.mock('../../../src/composables/usePeer', () => {
@@ -405,7 +405,7 @@ describe('Lobby Authentication Integration Tests', () => {
 describe('Connection Modal Logic', () => {
     it('shows connection modal and times out', async () => {
         vi.useFakeTimers();
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         // Join Game Flow
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
@@ -429,7 +429,7 @@ describe('Connection Modal Logic', () => {
 
     it('closes connection modal when entering Waiting Room (PENDING)', async () => {
         vi.useFakeTimers();
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
         await wrapper.find('[data-testid="join-name-input"]').setValue('PendingUser');
@@ -460,7 +460,7 @@ describe('Connection Modal Logic', () => {
         peer.gameState.roomCode = '';
         peer.connectionError.value = '';
 
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
         await wrapper.vm.$nextTick();
 
@@ -486,7 +486,7 @@ describe('Connection Modal Logic', () => {
         peer.gameState.roomCode = '';
         peer.connectionError.value = '';
 
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         // Setup Pending State
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');

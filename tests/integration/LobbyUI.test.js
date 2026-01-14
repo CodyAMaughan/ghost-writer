@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import Lobby from '../../src/components/Lobby.vue';
+import GameController from '../../src/components/GameController.vue';
 import { usePeer } from '../../src/composables/usePeer';
 import { MockPeer } from '../mocks/peerjs';
 
@@ -45,7 +45,7 @@ describe('Lobby UI Integration (Mock Network)', () => {
     });
 
     it('Connection Timeout: Shows error if no response after 5s', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         // 1. Enter Join Details
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
@@ -67,7 +67,7 @@ describe('Lobby UI Integration (Mock Network)', () => {
     });
 
     it('Waiting Room: Enters Pending state and closes modal', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         // 1. Join
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
@@ -101,7 +101,7 @@ describe('Lobby UI Integration (Mock Network)', () => {
     });
 
     it('Connection Error: Shows error from Host (e.g. Auth Fail)', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
         await wrapper.find('[data-testid="join-name-input"]').setValue('ErrorUser');
@@ -125,7 +125,7 @@ describe('Lobby UI Integration (Mock Network)', () => {
     });
 
     it('Cancel Pending: Resets state to Join Form', async () => {
-        const wrapper = mount(Lobby);
+        const wrapper = mount(GameController);
 
         // 1. Get into Pending State
         await wrapper.find('[data-testid="landing-join-btn"]').trigger('click');
