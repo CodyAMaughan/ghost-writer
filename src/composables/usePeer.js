@@ -380,12 +380,10 @@ export function usePeer() {
                 }
                 hostConn = null;
             } else {
+                wasKicked = true; // Mark as intentional disconnect
                 alert(msg.payload.message || 'Host denied entry');
                 window.location.reload();
             }
-            wasKicked = true; // Mark as intentional disconnect
-            alert(msg.payload.message || 'You have been removed from the game');
-            window.location.reload();
         } else if (msg.type === 'CHAT_MESSAGE') {
             handleChatData(msg);
         } else if (msg.type === 'REACTION_EMOTE') {

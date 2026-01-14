@@ -4,12 +4,19 @@ import { usePeer } from '../../composables/usePeer';
 import { LogIn } from 'lucide-vue-next';
 import ConnectingModal from '../modals/ConnectingModal.vue';
 
+const props = defineProps({
+    initialCode: {
+        type: String,
+        default: ''
+    }
+});
+
 const emit = defineEmits(['back']);
 const { joinGame, isPending, connectionError } = usePeer();
 
 const form = ref({
   name: '',
-  code: new URLSearchParams(window.location.search).get('room') || '',
+  code: props.initialCode || new URLSearchParams(window.location.search).get('room') || '',
   password: ''
 });
 

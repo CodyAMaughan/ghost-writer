@@ -58,6 +58,9 @@ describe('Invite Link Logic', () => {
             writable: true
         });
 
+        // Spy on history.replaceState
+        vi.spyOn(window.history, 'replaceState');
+
         // We mount GameController because it handles the initial routing logic
         const wrapper = mount(GameController, {
             global: {
@@ -90,11 +93,15 @@ describe('Invite Link Logic', () => {
         // Note: JoinSetup auto-reads URL on ref initialization.
 
         // Check local state of JoinSetup
-        // <script setup> components are closed. We can't easily access 'form' ref from test wrapper unless exposed.
-        // Alternative: Check input value
         const codeInput = joinSetup.find('[data-testid="join-code-input"]');
         expect(codeInput.exists()).toBe(true);
         expect(codeInput.element.value).toBe('INVITE123');
+
+        // 3. Verify URL was cleaned
+        expect(window.history.replaceState).toHaveBeenCalled();
+        const callArgs = window.history.replaceState.mock.calls[0];
+        // Expect the new URL to NOT contain ?room=
+        expect(callArgs[2]).not.toContain('?room=');
     });
 
     it('Should remain in LANDING mode if no room param', async () => {

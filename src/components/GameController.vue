@@ -47,10 +47,18 @@ watch(remoteDisconnectReason, (reason) => {
 });
 
 // Initial URL Check
+const initialRoomCode = ref('');
+
 onMounted(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('room')) {
+    const room = urlParams.get('room');
+    if (room) {
         mode.value = 'JOINING';
+        initialRoomCode.value = room;
+
+        // Clean URL
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
     }
 });
 </script>
@@ -58,6 +66,7 @@ onMounted(() => {
 <template>
     <component 
         :is="currentView"
+        :initial-code="initialRoomCode"
         @navigate="(newMode) => mode = newMode"
         @back="mode = 'LANDING'"
         @leave="mode = 'LANDING'"
