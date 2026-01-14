@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePeer } from '../../src/composables/usePeer';
 import Peer from 'peerjs';
+import * as iceModule from '../../src/composables/peer/useIceServers';
 
 // Mock PeerJS
 vi.mock('peerjs', () => {
@@ -9,69 +11,54 @@ vi.mock('peerjs', () => {
             return {
                 on: vi.fn(),
                 destroy: vi.fn(),
+                connect: vi.fn().mockReturnValue({
+                    on: vi.fn(),
+                    send: vi.fn()
+                })
             };
         }),
     };
 });
 
-describe('Network Configuration', () => {
+// Mock the ICE module
+vi.mock('../../src/composables/peer/useIceServers', () => ({
+    getIceServers: vi.fn()
+}));
+
+describe('usePeer Integration Check', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        // Reset env vars
-        vi.stubGlobal('import.meta', { env: { VITE_ICE_SERVERS: undefined } });
     });
 
-    afterEach(() => {
-        vi.unstubAllEnvs();
-    });
-
-    it('uses default Google STUN server when no env var is provided', () => {
-        const { initHost } = usePeer();
-        initHost('TestHost', 'gemini', 'key');
-
-        expect(Peer).toHaveBeenCalled();
-        const configArg = Peer.mock.calls[0][1]; // 2nd argument is config
-
-        expect(configArg).toBeDefined();
-        expect(configArg.config.iceServers).toEqual([
-            { urls: 'stun:stun.l.google.com:19302' }
-        ]);
-    });
-
-    it('merges VITE_ICE_SERVERS with default STUN when provided', () => {
-        const customServers = [
-            { urls: 'turn:my-turn-server.com', username: 'user', credential: 'pass' }
-        ];
-
-        // Mock the environment variable
-        vi.stubEnv('VITE_ICE_SERVERS', JSON.stringify(customServers));
+    it('initHost uses getIceServers result', async () => {
+        const mockServers = [{ urls: 'stun:mock-server.com' }];
+        vi.mocked(iceModule.getIceServers).mockResolvedValue(mockServers);
 
         const { initHost } = usePeer();
-        initHost('TestHost', 'gemini', 'key');
+        await initHost('HostUser', 'gemini', 'key');
 
-        const configArg = Peer.mock.calls[0][1];
-
-        expect(configArg.config.iceServers).toHaveLength(2);
-        expect(configArg.config.iceServers[0]).toEqual({ urls: 'stun:stun.l.google.com:19302' });
-        expect(configArg.config.iceServers[1]).toEqual(customServers[0]);
+        expect(iceModule.getIceServers).toHaveBeenCalled();
+        expect(Peer).toHaveBeenCalledWith(
+            expect.stringContaining('ghost-writer-'),
+            expect.objectContaining({
+                config: { iceServers: mockServers }
+            })
+        );
     });
 
-    it('adds simple TURN config from individual env vars', () => {
-        vi.stubEnv('VITE_TURN_URL', 'turn:example.com');
-        vi.stubEnv('VITE_TURN_USERNAME', 'user');
-        vi.stubEnv('VITE_TURN_PASSWORD', 'pass');
+    it('joinGame uses getIceServers result', async () => {
+        const mockServers = [{ urls: 'turn:mock-turn.com' }];
+        vi.mocked(iceModule.getIceServers).mockResolvedValue(mockServers);
 
-        const { initHost } = usePeer();
-        initHost('TestHost', 'gemini', 'key');
+        const { joinGame } = usePeer();
+        await joinGame('ABCD', 'ClientUser');
 
-        const configArg = Peer.mock.calls[0][1];
-
-        expect(configArg.config.iceServers).toHaveLength(2);
-        // Index 1 should be the TURN server
-        expect(configArg.config.iceServers[1]).toEqual({
-            urls: 'turn:example.com',
-            username: 'user',
-            credential: 'pass'
-        });
+        expect(iceModule.getIceServers).toHaveBeenCalled();
+        expect(Peer).toHaveBeenCalledWith(
+            undefined,
+            expect.objectContaining({
+                config: { iceServers: mockServers }
+            })
+        );
     });
 });

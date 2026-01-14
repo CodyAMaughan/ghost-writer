@@ -27,7 +27,7 @@ describe('usePeer Logic', () => {
 
     it('SYNC message should NOT clear isPending if player not in confirmed list', async () => {
         const client = usePeer();
-        client.joinGame('CODE', 'MyName');
+        await client.joinGame('CODE', 'MyName');
 
         // Wait for Peer 'open' (mock delay)
         vi.advanceTimersByTime(50);
@@ -52,7 +52,7 @@ describe('usePeer Logic', () => {
 
     it('kickPlayer sends KICKED message and closes connection after delay', async () => {
         const host = usePeer();
-        host.initHost('HostName', 'provider', 'key');
+        await host.initHost('HostName', 'provider', 'key');
 
         // Wait for Peer 'open'
         vi.advanceTimersByTime(50);
