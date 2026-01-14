@@ -60,13 +60,21 @@ const verdict = computed(() => {
         ? (theme.value.reveal?.verdictAi || 'AI')
         : (theme.value.reveal?.verdictHuman || 'HUMAN');
 });
+
+const textSizeClass = computed(() => {
+    if (!currentSubmission.value?.text) return 'text-2xl md:text-4xl';
+    const len = currentSubmission.value.text.length;
+    if (len < 30) return 'text-2xl md:text-4xl';
+    if (len < 60) return 'text-xl md:text-3xl';
+    return 'text-lg md:text-2xl';
+});
 </script>
 
 <template>
   <div class="w-full h-full overflow-y-auto flex flex-col items-center p-4 pb-32">
     <div
       v-if="currentSubmission"
-      class="w-full max-w-2xl relative my-auto h-[600px] flex flex-col"
+      class="w-full max-w-2xl relative my-auto min-h-[500px] h-auto flex flex-col"
     >
       <!-- Persistent Prompt -->
       <div class="text-center mb-4 animate-fade-in-down">
@@ -111,8 +119,12 @@ const verdict = computed(() => {
           </transition>
 
           <!-- Row 2: Quote (Visible Step 0) -->
-          <div class="flex-grow flex items-center justify-center w-full">
-            <p class="text-2xl md:text-4xl font-serif italic text-white leading-relaxed animate-fade-in-up">
+          <div class="flex-grow flex items-center justify-center w-full py-4">
+            <p 
+              data-testid="reveal-text"
+              class="font-serif italic text-white leading-relaxed animate-fade-in-up transition-all duration-300"
+              :class="textSizeClass"
+            >
               "{{ currentSubmission.text }}"
             </p>
           </div>
@@ -220,14 +232,14 @@ const verdict = computed(() => {
                       class="text-green-400 font-bold flex flex-col items-center gap-1"
                     >
                       <CheckCircle class="w-8 h-8" /> 
-                      <span>FOOLED (+3)</span>
+                      <span class="text-xs md:text-base whitespace-nowrap">FOOLED (+3)</span>
                     </div>
                     <div
                       v-else
                       class="text-red-500 font-bold flex flex-col items-center gap-1"
                     >
                       <XCircle class="w-8 h-8" /> 
-                      <span>CAUGHT (0)</span>
+                      <span class="text-xs md:text-base whitespace-nowrap">CAUGHT (0)</span>
                     </div>
                   </div>
                   <div v-else>
@@ -236,14 +248,14 @@ const verdict = computed(() => {
                       class="text-green-400 font-bold flex flex-col items-center gap-1"
                     >
                       <CheckCircle class="w-8 h-8" /> 
-                      <span>FAKED (+2)</span>
+                      <span class="text-xs md:text-base whitespace-nowrap">FAKED (+2)</span>
                     </div>
                     <div
                       v-else
                       class="text-blue-300 font-bold flex flex-col items-center gap-1"
                     >
                       <CheckCircle class="w-8 h-8" /> 
-                      <span>SAFE (+1)</span>
+                      <span class="text-xs md:text-base whitespace-nowrap">SAFE (+1)</span>
                     </div>
                   </div>
                 </div>
@@ -255,21 +267,21 @@ const verdict = computed(() => {
                     class="text-slate-500 font-bold flex flex-col items-center gap-1"
                   >
                     <MinusCircle class="w-8 h-8" /> 
-                    <span>SKIPPED (0)</span>
+                    <span class="text-xs md:text-base whitespace-nowrap">SKIPPED (0)</span>
                   </div>
                   <div
                     v-else-if="(myVote === 'HUMAN' && currentSubmission.source !== 'AI') || (myVote === 'BOT' && currentSubmission.source === 'AI')"
                     class="text-green-500 font-bold flex flex-col items-center gap-1"
                   >
                     <CheckCircle class="w-8 h-8" /> 
-                    <span>CORRECT (+1)</span>
+                    <span class="text-xs md:text-base whitespace-nowrap">CORRECT (+1)</span>
                   </div>
                   <div
                     v-else
                     class="text-red-500 font-bold flex flex-col items-center gap-1"
                   >
                     <XCircle class="w-8 h-8" /> 
-                    <span>WRONG (0)</span>
+                    <span class="text-xs md:text-base whitespace-nowrap">WRONG (0)</span>
                   </div>
                 </div>
               </div>
