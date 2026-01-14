@@ -92,7 +92,15 @@ export function usePeer() {
 
         // Namespace the Peer ID to avoid collisions with other users of the public PeerJS server
         // logic: ghost-writer-[CODE]
-        peer = new Peer(`ghost-writer-${code}`);
+        const peerConfig = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' }, // Free STUN
+                    ...(import.meta.env.VITE_ICE_SERVERS ? JSON.parse(import.meta.env.VITE_ICE_SERVERS) : [])
+                ]
+            }
+        };
+        peer = new Peer(`ghost-writer-${code}`, peerConfig);
 
         peer.on('open', (id) => {
             console.log('Host created w/ ID:', id);
@@ -129,7 +137,16 @@ export function usePeer() {
             peer = null;
         }
 
-        peer = new Peer();
+        const peerConfig = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' }, // Free STUN
+                    ...(import.meta.env.VITE_ICE_SERVERS ? JSON.parse(import.meta.env.VITE_ICE_SERVERS) : [])
+                ]
+            }
+        };
+
+        peer = new Peer(undefined, peerConfig);
 
         peer.on('open', (id) => {
             myId.value = id;
