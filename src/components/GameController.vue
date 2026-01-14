@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { usePeer } from '../composables/usePeer';
+import { useAudio } from '../composables/useAudio';
 import GameScreen from './GameScreen.vue';
 import Lobby from './Lobby.vue';
 import LandingPage from './setup/LandingPage.vue';
@@ -9,6 +10,38 @@ import JoinSetup from './setup/JoinSetup.vue';
 import PendingScreen from './setup/PendingScreen.vue';
 
 const { gameState, isPending, remoteDisconnectReason, isHost, myId } = usePeer();
+const { playMusic, validateMusic } = useAudio();
+
+// Centralized Music Orchestration
+const updateMusic = () => {
+    if (gameState.phase === 'LOBBY') {
+        playMusic('BGM_LOBBY');
+    } else {
+        // In Game
+        const key = 'BGM_' + (gameState.currentTheme || 'viral').toUpperCase();
+        playMusic(key);
+    }
+};
+
+// Watch Phase Changes
+watch(() => gameState.phase, (newPhase) => {
+    updateMusic();
+    // Ensure audio context is valid if we just started
+    if (newPhase !== 'LOBBY') {
+        validateMusic(newPhase, gameState.currentTheme);
+    }
+}, { immediate: true });
+
+// Watch Theme Changes (e.g., Host changes theme mid-game or lobby)
+watch(() => gameState.currentTheme, () => {
+    // Only update if we are NOT in lobby (Lobby always uses BGM_LOBBY regardless of theme selection)
+    // Wait, actually if they change theme in lobby, does it play that theme? 
+    // The previous logic was "Lobby always BGM_LOBBY".
+    // Let's keep that simple. 
+    if (gameState.phase !== 'LOBBY') {
+        updateMusic();
+    }
+});
 
 // Local UI Mode (replaces the mode inside Lobby.vue)
 const mode = ref('LANDING'); // LANDING, HOSTING, JOINING

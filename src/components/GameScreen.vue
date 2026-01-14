@@ -68,26 +68,6 @@ watch(showTransition, (val) => {
 
 const timer = computed(() => gameState.timer);
 
-// AUDIO LOGIC
-const { playMusic, validateMusic } = useAudio();
-const playThemeMusic = () => {
-    const key = 'BGM_' + (gameState.currentTheme || 'viral').toUpperCase();
-    playMusic(key);
-};
-
-onMounted(() => {
-    playThemeMusic();
-});
-
-watch(() => gameState.currentTheme, () => {
-    playThemeMusic();
-});
-
-// Robust Audio Recovery on Phase Change
-watch(() => gameState.phase, (newPhase) => {
-    validateMusic(newPhase, gameState.currentTheme);
-});
-
 // Timer audio logic moved to PhaseInput to respect local submission state
 
 </script>
