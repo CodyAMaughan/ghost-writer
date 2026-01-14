@@ -13,7 +13,7 @@ export default async (request, context) => {
     }
 
     try {
-        const METERED_DOMAIN = process.env.METERED_DOMAIN || "giggl.metered.live"; // Default or user provided
+        const METERED_DOMAIN = process.env.METERED_DOMAIN || "playghostwriter.metered.live"; // Default or user provided
         const apiKey = METERED_SECRET_KEY;
 
         // We use the "Easy" endpoint which returns the full ICE server array
