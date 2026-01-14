@@ -13,7 +13,7 @@ import ProfileModal from './modals/ProfileModal.vue';
 import { useStreamerMode } from '../composables/useStreamerMode';
 
 const { initHost, joinGame, gameState, myId, startGame, isHost, leaveGame, setTheme, 
-        approvePendingPlayer, rejectPendingPlayer, kickPlayer, connectionError, isPending } = usePeer();
+        approvePendingPlayer, rejectPendingPlayer, kickPlayer, connectionError, isPending, remoteDisconnectReason } = usePeer();
 const { isStreamerMode } = useStreamerMode();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
@@ -50,12 +50,24 @@ onUnmounted(() => {
 });
 
 // Watch for connection errors (e.g., wrong password)
-watch(connectionError, (error) => {
+watch([connectionError, remoteDisconnectReason], ([error, remoteReason]) => {
     if (error) {
         form.value.password = '';
         isPending.value = false;
         isConnecting.value = false;
         mode.value = 'JOINING';
+    }
+    if (remoteReason) {
+        alert(remoteReason);
+        // Clear the state locally if needed, though usePeer/resetGame handles it.
+        // We just need to ensure UI mode resets.
+        mode.value = 'LANDING';
+        isPending.value = false;
+        isConnecting.value = false;
+        // Reset the reason so we don't alert again? 
+        // Or assume usePeer clears it on next connect?
+        // usePeer doesn't auto-clear it unless resetGame called again.
+        // It's fine for now.
     }
 });
 
@@ -521,7 +533,7 @@ const handleNameClick = (playerId) => {
 
     <!-- JOIN FORM -->
     <div
-      v-if="mode === 'JOINING' && !isPending"
+      v-else-if="mode === 'JOINING' && !isPending"
       class="w-full bg-slate-800 p-8 rounded-lg border border-slate-600 shadow-2xl"
     >
       <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-2">

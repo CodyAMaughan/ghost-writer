@@ -122,7 +122,7 @@ const textSizeClass = computed(() => {
           <div class="flex-grow flex items-center justify-center w-full py-4">
             <p 
               data-testid="reveal-text"
-              class="font-serif italic text-white leading-relaxed animate-fade-in-up transition-all duration-300"
+              class="font-serif italic text-white leading-relaxed animate-fade-in-up transition-all duration-300 break-all"
               :class="textSizeClass"
             >
               "{{ currentSubmission.text }}"

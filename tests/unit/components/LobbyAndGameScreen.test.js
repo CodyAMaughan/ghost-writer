@@ -207,6 +207,24 @@ describe('Lobby Integration', () => {
 
         const wrapper = mount(Lobby);
 
+        // Manually navigate to Waiting Room to ensure Nameplates are rendered
+        // 1. Host Click
+        await wrapper.find('[data-testid="landing-host-btn"]').trigger('click');
+        // 2. Fill Name
+        await wrapper.find('[data-testid="host-name-input"]').setValue('Me');
+
+        // 3. Bring Your Own Key flow
+        const buttons = wrapper.findAll('button');
+        const bringOwnKeyBtn = buttons.find(btn => btn.text().includes('Bring Your Own Key'));
+        await bringOwnKeyBtn.trigger('click');
+        await nextTick();
+
+        await wrapper.find('[data-testid="host-api-input"]').setValue('sk-key');
+
+        // 4. Init Host (Triggers transition to WAITING mode)
+        await wrapper.find('[data-testid="host-init-btn"]').trigger('click');
+        await nextTick();
+
         // Find my nameplate
         const myNameplate = wrapper.findAllComponents({ name: 'Nameplate' })
             .find(n => n.props('playerId') === 'p1');

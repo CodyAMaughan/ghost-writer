@@ -10,11 +10,14 @@ vi.mock('peerjs', async () => {
 });
 
 describe('Chat System Integration', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         MockPeer.reset();
         vi.useFakeTimers();
         const { leaveGame } = usePeer();
         leaveGame();
+        // Ensure any pending resetGame timeout from leaveGame is processed or cleared
+        await vi.advanceTimersByTimeAsync(200);
+        vi.clearAllTimers();
     });
 
     afterEach(() => {
@@ -176,6 +179,7 @@ describe('Chat System Integration', () => {
         expect(Peer.gameMessages.value).toHaveLength(1);
 
         Peer.leaveGame();
+        await vi.advanceTimersByTimeAsync(200); // Wait for host timeout if applicable
 
         expect(Peer.gameMessages.value).toHaveLength(0);
     });

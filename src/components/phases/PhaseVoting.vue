@@ -72,7 +72,7 @@ const lockVotes = () => {
               class="text-[10px] bg-slate-700 px-2 rounded-full text-white ml-2"
             >YOU</span>
           </div>
-          <p class="text-lg text-white font-serif italic">
+          <p class="text-lg text-white font-serif italic break-all">
             "{{ sub.text }}"
           </p>
         </div>

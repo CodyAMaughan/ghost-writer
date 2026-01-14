@@ -40,6 +40,7 @@ const myName = ref('');
 const isHost = ref(false);
 const isPending = ref(false); // Track if waiting for host approval
 const connectionError = ref(''); // Error message for connection issues
+const remoteDisconnectReason = ref(''); // Reason for remote disconnect (e.g. host closed lobby)
 const connMap = new Map();
 let peer = null;
 let hostConn = null;
@@ -160,7 +161,8 @@ export function usePeer() {
 
             hostConn.on('close', () => {
                 // Only show "Host disconnected" if it wasn't an intentional kick/reject
-                if (!wasKicked) {
+                // AND if we didn't receive a specific reason (like LOBBY_CLOSED)
+                if (!wasKicked && !remoteDisconnectReason.value) {
                     alert("Host disconnected");
                     window.location.reload();
                 }
@@ -388,6 +390,9 @@ export function usePeer() {
             handleChatData(msg);
         } else if (msg.type === 'CHAT_DELETE_USER') {
             handleChatData(msg);
+        } else if (msg.type === 'LOBBY_CLOSED') {
+            remoteDisconnectReason.value = 'The host has closed the lobby.';
+            resetGame(); // Clears players, resets phase to LOBBY
         }
     };
 
@@ -520,7 +525,8 @@ export function usePeer() {
         broadcastState();
 
         // 5s to read prompt, then INPUT
-        setTimeout(() => {
+        if (promptTimeout) clearTimeout(promptTimeout);
+        promptTimeout = setTimeout(() => {
             gameState.timer = gameState.settings.roundDuration;
             gameState.phase = 'INPUT';
             broadcastState();
@@ -528,6 +534,8 @@ export function usePeer() {
         }, 5000);
     };
 
+    // Singleton State
+    let promptTimeout = null;
     let currentTimerInterval = null;
 
     const startTimer = () => {
@@ -724,6 +732,8 @@ export function usePeer() {
     const resetGame = () => {
         resetChat(); // Reset chat state
         if (revealTimer) clearInterval(revealTimer);
+        if (currentTimerInterval) clearInterval(currentTimerInterval);
+        if (promptTimeout) clearTimeout(promptTimeout);
         // Reset all state to default
         gameState.phase = 'LOBBY';
         gameState.roomCode = '';
@@ -755,9 +765,21 @@ export function usePeer() {
 
     const leaveGame = () => {
         if (isHost.value) {
-            // If host leaves, maybe notify others?
-            // PeerJS destroy() usually triggers 'close' on others, handled in client logic
-            resetGame();
+            // Notify all players that the lobby is closing
+            Object.values(connMap).forEach(conn => { // connMap stores connections? No, map values are conns
+
+            });
+            // Better: loop through map
+            connMap.forEach((conn) => {
+                if (conn && conn.open) {
+                    conn.send({ type: 'LOBBY_CLOSED' });
+                }
+            });
+
+            // Give a tiny delay for messages to flush before destroying peer?
+            setTimeout(() => {
+                resetGame();
+            }, 100);
         } else {
             resetGame();
         }
@@ -770,6 +792,7 @@ export function usePeer() {
         gameState,
         isPending,
         connectionError,
+        remoteDisconnectReason,
         initHost,
         joinGame,
         startGame,

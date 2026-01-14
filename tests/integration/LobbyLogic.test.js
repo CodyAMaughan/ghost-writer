@@ -31,6 +31,10 @@ const resetState = () => {
         // Ignore errors during cleanup
     }
 
+    // CRITICAL: leaveGame sets a timeout (if host) to resetGame. 
+    // We must clear this timeout so it doesn't fire during the next test phase.
+    vi.clearAllTimers();
+
     // Manually force reset reactive state in case leaveGame didn't cover everything
     gameState.phase = 'LOBBY';
     gameState.currentTheme = 'classic';

@@ -88,22 +88,25 @@ describe('PhaseReveal.vue', () => {
         mockPeerState.gameState.submissions = [{ authorId: 'p1', text: 'Short text', votes: {} }];
         let wrapper = mount(PhaseReveal);
         let textElement = wrapper.find('[data-testid="reveal-text"]');
-        // Currently hardcoded to 'text-2xl md:text-4xl' in the original file, so this "test" might pass or fail depending on if we check exact classes
-        // But we want to enforce the NEW classes.
-        // Once implemented, we expect:
-        // Short (<30): 'text-2xl md:text-4xl'
         expect(textElement.classes()).toContain('text-2xl');
 
         // Medium text (30-60)
         mockPeerState.gameState.submissions = [{ authorId: 'p1', text: 'A medium length text that is between thirty and sixty chars', votes: {} }];
         wrapper = mount(PhaseReveal);
         textElement = wrapper.find('[data-testid="reveal-text"]');
-        expect(textElement.classes()).toContain('text-xl'); // The new class we want
+        expect(textElement.classes()).toContain('text-xl');
 
         // Long text (60+)
         mockPeerState.gameState.submissions = [{ authorId: 'p1', text: 'A very long text that goes on and on and determines that we need a smaller font size to fit everything comfortably on the screen.', votes: {} }];
         wrapper = mount(PhaseReveal);
         textElement = wrapper.find('[data-testid="reveal-text"]');
-        expect(textElement.classes()).toContain('text-lg'); // The smallest class
+        expect(textElement.classes()).toContain('text-lg');
+    });
+
+    it('Ensures text wraps correctly for long words (break-all)', async () => {
+        mockPeerState.gameState.submissions = [{ authorId: 'p1', text: 'Supercalifragilisticexpialidocious', votes: {} }];
+        const wrapper = mount(PhaseReveal);
+        const textElement = wrapper.find('[data-testid="reveal-text"]');
+        expect(textElement.classes()).toContain('break-all');
     });
 });
