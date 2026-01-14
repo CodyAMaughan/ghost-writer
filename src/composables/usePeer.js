@@ -729,11 +729,15 @@ export function usePeer() {
         }
     };
 
-    const resetGame = () => {
-        resetChat(); // Reset chat state
+    const clearTimers = () => {
         if (revealTimer) clearInterval(revealTimer);
         if (currentTimerInterval) clearInterval(currentTimerInterval);
         if (promptTimeout) clearTimeout(promptTimeout);
+    };
+
+    const resetGame = () => {
+        resetChat(); // Reset chat state
+        clearTimers();
         // Reset all state to default
         gameState.phase = 'LOBBY';
         gameState.roomCode = '';
@@ -775,6 +779,10 @@ export function usePeer() {
                     conn.send({ type: 'LOBBY_CLOSED' });
                 }
             });
+
+            // CRITICAL: Stop all game logic/timers IMMEDIATELY so no new states 
+            // (like INPUT) are broadcast while we are waiting to close.
+            clearTimers();
 
             // Give a tiny delay for messages to flush before destroying peer?
             setTimeout(() => {

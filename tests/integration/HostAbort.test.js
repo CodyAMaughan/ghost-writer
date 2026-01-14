@@ -186,4 +186,36 @@ describe('Host Abort Logic Integration', () => {
         // (If timer was reset to 0, interval might trigger startVoting)
         expect(gameState.phase).not.toBe('VOTING');
     });
+
+    it('Regression: Timers do not fire DURING the leaveGame 100ms grace period', async () => {
+        resetState();
+        const { initHost, startRound, leaveGame, gameState } = usePeer();
+
+        // 1. Host in PROMPT phase
+        await initHost('Host', 'gemini', '');
+        await vi.advanceTimersByTimeAsync(100);
+
+        startRound(); // Sets 5s timeout
+        await vi.advanceTimersByTimeAsync(10);
+        expect(gameState.phase).toBe('PROMPT');
+
+        // 2. Advance time close to the edge (e.g. 4.95s)
+        await vi.advanceTimersByTimeAsync(4950);
+
+        // 3. Host Aborts (starts 100ms grace period)
+        leaveGame();
+
+        // 4. Advance time by 60ms (Total 5.01s from start - timer SHOULD have fired naturally)
+        // But because we called leaveGame, the timer should have been killed immediately.
+        await vi.advanceTimersByTimeAsync(60);
+
+        // 5. Assert we did NOT switch to INPUT
+        expect(gameState.phase).not.toBe('INPUT');
+        // We are at 60ms post-leave. resetGame happens at 100ms.
+        // So phase should still be PROMPT (or whatever it was before INPUT switch)
+
+        // 6. Advance past the reset
+        await vi.advanceTimersByTimeAsync(50);
+        expect(gameState.phase).toBe('LOBBY');
+    });
 });
