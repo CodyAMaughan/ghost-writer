@@ -22,8 +22,8 @@ const emit = defineEmits(['navigate']);
         <span>{{ remoteDisconnectReason }}</span>
       </div>
       <button 
-        @click="remoteDisconnectReason = ''" 
-        class="bg-red-950/50 hover:bg-red-800 p-1 rounded transition-colors"
+        class="bg-red-950/50 hover:bg-red-800 p-1 rounded transition-colors" 
+        @click="remoteDisconnectReason = ''"
       >
         <X class="w-4 h-4" />
       </button>

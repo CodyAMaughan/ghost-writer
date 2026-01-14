@@ -64,11 +64,11 @@ onMounted(() => {
 </script>
 
 <template>
-    <component 
-        :is="currentView"
-        :initial-code="initialRoomCode"
-        @navigate="(newMode) => mode = newMode"
-        @back="mode = 'LANDING'"
-        @leave="mode = 'LANDING'"
-    />
+  <component 
+    :is="currentView"
+    :initial-code="initialRoomCode"
+    @navigate="(newMode) => mode = newMode"
+    @back="mode = 'LANDING'"
+    @leave="mode = 'LANDING'"
+  />
 </template>
