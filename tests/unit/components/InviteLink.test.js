@@ -1,12 +1,14 @@
 import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { ref } from 'vue';
-import Lobby from '../../../src/components/Lobby.vue';
+import GameController from '../../../src/components/GameController.vue';
+import JoinSetup from '../../../src/components/setup/JoinSetup.vue'; // Needed for findComponent search by name/def
 
 // Mock usePeer
 vi.mock('../../../src/composables/usePeer', () => {
     const gameState = {
         currentTheme: 'classic',
+        phase: 'LOBBY', // Fix: Controller needs this to know we aren't in game
         players: [],
         roomCode: 'TESTCODE',
         settings: { enableWaitingRoom: false }
@@ -21,6 +23,7 @@ vi.mock('../../../src/composables/usePeer', () => {
             isHost: ref(false),
             isPending: ref(false),
             connectionError: ref(''),
+            remoteDisconnectReason: ref(''), // Added missing ref
             playMusic: vi.fn(),
             stopMusic: vi.fn(),
             kickPlayer: vi.fn(),
@@ -55,37 +58,43 @@ describe('Invite Link Logic', () => {
             writable: true
         });
 
-        const wrapper = mount(Lobby, {
+        // We mount GameController because it handles the initial routing logic
+        const wrapper = mount(GameController, {
             global: {
                 stubs: {
-                    Server: true,
-                    LogIn: true,
-                    User: true,
-                    Key: true,
-                    Users: true,
-                    Play: true,
-                    Ban: true,
-                    Trash2: true,
-                    Check: true,
-                    X: true,
-                    Link: true,
-                    Share: true,
-                    AvatarIcon: true,
-                    ApiKeyHelpModal: true
+                    // Stub children to verify which one renders
+                    LandingPage: true,
+                    HostSetup: true,
+                    // We don't stub JoinSetup so we can check its internal state (the form code)
+                    // But wait, if we shallow mount or stub others, we can check wrapper.findComponent(JoinSetup)
+                    GameScreen: true,
+                    Lobby: true,
+                    ConnectingModal: true,
+                    LogIn: true
                 }
             }
         });
 
-        // Check VM state
-        expect(wrapper.vm.mode).toBe('JOINING');
-        expect(wrapper.vm.form.code).toBe('INVITE123');
-
-        // Wait for render
+        // Wait for onMounted in GameController and JoinSetup
         await wrapper.vm.$nextTick();
 
-        // Check if Join Form is visible
-        const joinHeader = wrapper.find('h2');
-        expect(joinHeader.text()).toContain('JOIN LOBBY');
+        // 1. Verify GameController switched mode to 'JOINING'
+        // Accessing component internal state 'mode' via vm (exposed by <script setup> if not defineExpose? No, <script setup> is closed by default)
+        // Actually, assertions on rendered component are better.
+        // It should render JoinSetup
+        const joinSetup = wrapper.findComponent(JoinSetup);
+        expect(joinSetup.exists()).toBe(true);
+
+        // 2. Verify JoinSetup grabbed the code
+        // Since JoinSetup is not stubbed (or even if it was, we check props if passed, but here it reads URL itself)
+        // Note: JoinSetup auto-reads URL on ref initialization.
+
+        // Check local state of JoinSetup
+        // <script setup> components are closed. We can't easily access 'form' ref from test wrapper unless exposed.
+        // Alternative: Check input value
+        const codeInput = joinSetup.find('[data-testid="join-code-input"]');
+        expect(codeInput.exists()).toBe(true);
+        expect(codeInput.element.value).toBe('INVITE123');
     });
 
     it('Should remain in LANDING mode if no room param', async () => {
@@ -97,10 +106,23 @@ describe('Invite Link Logic', () => {
             writable: true
         });
 
-        const wrapper = mount(Lobby, {
-            global: { stubs: { Server: true, LogIn: true, Link: true, Share: true, AvatarIcon: true, ApiKeyHelpModal: true } }
+        const wrapper = mount(GameController, {
+            global: {
+                stubs: {
+                    LandingPage: true,
+                    HostSetup: true,
+                    JoinSetup: true, // Stub this too for the failing test to see if it renders
+                    GameScreen: true,
+                    Lobby: true
+                }
+            }
         });
 
-        expect(wrapper.vm.mode).toBe('LANDING');
+        await wrapper.vm.$nextTick();
+
+        // Should render LandingPage
+        // Use imported component definition if possible, but finding by stub name also works if stubbed correctly
+        expect(wrapper.findComponent({ name: 'LandingPage' }).exists()).toBe(true);
+        expect(wrapper.findComponent({ name: 'JoinSetup' }).exists()).toBe(false);
     });
 });

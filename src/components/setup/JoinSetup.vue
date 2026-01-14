@@ -9,7 +9,7 @@ const { joinGame, isPending, connectionError } = usePeer();
 
 const form = ref({
   name: '',
-  code: '',
+  code: new URLSearchParams(window.location.search).get('room') || '',
   password: ''
 });
 
