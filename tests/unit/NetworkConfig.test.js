@@ -55,4 +55,23 @@ describe('Network Configuration', () => {
         expect(configArg.config.iceServers[0]).toEqual({ urls: 'stun:stun.l.google.com:19302' });
         expect(configArg.config.iceServers[1]).toEqual(customServers[0]);
     });
+
+    it('adds simple TURN config from individual env vars', () => {
+        vi.stubEnv('VITE_TURN_URL', 'turn:example.com');
+        vi.stubEnv('VITE_TURN_USERNAME', 'user');
+        vi.stubEnv('VITE_TURN_PASSWORD', 'pass');
+
+        const { initHost } = usePeer();
+        initHost('TestHost', 'gemini', 'key');
+
+        const configArg = Peer.mock.calls[0][1];
+
+        expect(configArg.config.iceServers).toHaveLength(2);
+        // Index 1 should be the TURN server
+        expect(configArg.config.iceServers[1]).toEqual({
+            urls: 'turn:example.com',
+            username: 'user',
+            credential: 'pass'
+        });
+    });
 });

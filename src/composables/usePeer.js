@@ -92,13 +92,33 @@ export function usePeer() {
 
         // Namespace the Peer ID to avoid collisions with other users of the public PeerJS server
         // logic: ghost-writer-[CODE]
-        const peerConfig = {
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' }, // Free STUN
-                    ...(import.meta.env.VITE_ICE_SERVERS ? JSON.parse(import.meta.env.VITE_ICE_SERVERS) : [])
-                ]
+        // Namespace the Peer ID to avoid collisions with other users of the public PeerJS server
+        // logic: ghost-writer-[CODE]
+        const iceServers = [
+            { urls: 'stun:stun.l.google.com:19302' }, // Free STUN
+        ];
+
+        // 1. JSON Config (Advanced)
+        if (import.meta.env.VITE_ICE_SERVERS) {
+            try {
+                const custom = JSON.parse(import.meta.env.VITE_ICE_SERVERS);
+                iceServers.push(...custom);
+            } catch (e) {
+                console.error("Failed to parse VITE_ICE_SERVERS", e);
             }
+        }
+
+        // 2. Simple TURN Config (Easy Mode)
+        if (import.meta.env.VITE_TURN_URL && import.meta.env.VITE_TURN_USERNAME) {
+            iceServers.push({
+                urls: import.meta.env.VITE_TURN_URL,
+                username: import.meta.env.VITE_TURN_USERNAME,
+                credential: import.meta.env.VITE_TURN_PASSWORD
+            });
+        }
+
+        const peerConfig = {
+            config: { iceServers }
         };
         peer = new Peer(`ghost-writer-${code}`, peerConfig);
 
@@ -137,13 +157,31 @@ export function usePeer() {
             peer = null;
         }
 
-        const peerConfig = {
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' }, // Free STUN
-                    ...(import.meta.env.VITE_ICE_SERVERS ? JSON.parse(import.meta.env.VITE_ICE_SERVERS) : [])
-                ]
+        const iceServers = [
+            { urls: 'stun:stun.l.google.com:19302' }, // Free STUN
+        ];
+
+        // 1. JSON Config (Advanced)
+        if (import.meta.env.VITE_ICE_SERVERS) {
+            try {
+                const custom = JSON.parse(import.meta.env.VITE_ICE_SERVERS);
+                iceServers.push(...custom);
+            } catch (e) {
+                console.error("Failed to parse VITE_ICE_SERVERS", e);
             }
+        }
+
+        // 2. Simple TURN Config (Easy Mode)
+        if (import.meta.env.VITE_TURN_URL && import.meta.env.VITE_TURN_USERNAME) {
+            iceServers.push({
+                urls: import.meta.env.VITE_TURN_URL,
+                username: import.meta.env.VITE_TURN_USERNAME,
+                credential: import.meta.env.VITE_TURN_PASSWORD
+            });
+        }
+
+        const peerConfig = {
+            config: { iceServers }
         };
 
         peer = new Peer(undefined, peerConfig);
