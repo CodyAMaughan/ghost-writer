@@ -11,6 +11,7 @@
 - **Networking:** PeerJS (Serverless P2P WebRTC)
 - **Build Tool:** Vite
 - **AI Integration:** Google Gemini (Free) / OpenAI / Custom
+- **Documentation:** See `docs/` folder for Architecture and Design specs.
 
 ## 🛠️ Setup Instructions
 

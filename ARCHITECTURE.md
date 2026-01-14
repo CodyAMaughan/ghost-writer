@@ -34,7 +34,10 @@ Visuals are strictly controlled by `src/config/themes.js`.
 
 ## 5. Directory Structure
 
-*   `src/components/`: Vue components (GameScreen, Lobby).
+*   `src/components/`:
+    *   `GameController.vue`: Main router/orchestrator. Handles URL routing (`?room=CODE`) and high-level view switching.
+    *   `setup/`: Setup screens (`LandingPage`, `HostSetup`, `JoinSetup`, `PendingScreen`).
+    *   `GameScreen.vue`: The main game UI (rendered when `phase !== LOBBY`).
 *   `src/composables/`: Shared logic (`usePeer.js`, `useAudio.js`, `useStreamerMode.js`).
 *   `src/composables/peer/`: Modularized peer logic (`useIceServers.js`, `useChat.js`, `useGhostAI.js`).
 *   `src/config/`: Static configuration (`themes.js`, `avatars.js`).

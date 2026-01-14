@@ -19,8 +19,12 @@
 
 ### 3.1 Lobby & Setup
 * **Host:** Creates room, selects AI Provider, configures settings (Round Timer, Password, Waiting Room).
-* **Moderation:** Host can **Kick** players, which removes them and scrubs their messages from the chat.
-* **Joiners:** Connect via 4-letter Room Code.
+* **Moderation:** Host can **Kick** players (scrubs chat) and **Approve/Reject** pending players if "Waiting Room" is enabled.
+* **Joiners:** 
+    *   Connect via 4-letter Room Code.
+    *   **Invite Link:** `?room=CODE` URL param auto-fills the code.
+        *   *UX:* URL param is cleared immediately upon loading to prevent stale refreshes.
+        *   *UX:* Duplicate name errors keep player on Join screen (no full reload).
 * **Avatars:** Players select from 12 preset avatars (`src/config/avatars.js`).
 
 ### 3.2 The Game Loop
