@@ -56,6 +56,29 @@ describe('Network Configuration', () => {
         expect(configArg.config.iceServers[1]).toEqual(customServers[0]);
     });
 
+    it('fetches TURN credentials from backend function', async () => {
+        const mockCredentials = {
+            iceServers: [
+                { urls: 'turn:backend-example.com', username: 'u', credential: 'p' }
+            ]
+        };
+
+        // Mock global fetch
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockCredentials
+        });
+
+        const { initHost } = usePeer();
+        await initHost('TestHost', 'gemini', 'key');
+
+        const configArg = Peer.mock.calls[0][1];
+
+        expect(configArg.config.iceServers).toHaveLength(2);
+        // Index 1 should be the TURN server
+        expect(configArg.config.iceServers[1]).toEqual(mockCredentials.iceServers[0]);
+    });
+
     it('adds simple TURN config from individual env vars', () => {
         vi.stubEnv('VITE_TURN_URL', 'turn:example.com');
         vi.stubEnv('VITE_TURN_USERNAME', 'user');
