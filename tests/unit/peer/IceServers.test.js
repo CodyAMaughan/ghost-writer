@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 // We will import the function we haven't written yet
 import { getIceServers } from '../../../src/composables/peer/useIceServers';
 

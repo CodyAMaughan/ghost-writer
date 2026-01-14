@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 export default async (request, context) => {
     // Only allow GET requests
     if (request.method !== "GET") {
@@ -12,14 +13,15 @@ export default async (request, context) => {
     }
 
     try {
-        // 1. Call Metered API to get a short-lived credential
-        // Docs: https://www.metered.ca/docs/turn-rest-api/
-        const response = await fetch("https://metered.ca/api/v1/turn/credentials?expiry=7200", {
+        const METERED_DOMAIN = process.env.METERED_DOMAIN || "giggl.metered.live"; // Default or user provided
+        const apiKey = METERED_SECRET_KEY;
+
+        // We use the "Easy" endpoint which returns the full ICE server array
+        // Docs: https://www.metered.ca/docs/turn-rest-api/get-credentials
+        const response = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?secretKey=${apiKey}`, {
             method: "GET",
             headers: {
-                "Accept": "application/json",
-                // Note: Metered uses the Secret Key as the API Key
-                "X-API-KEY": METERED_SECRET_KEY
+                "Accept": "application/json"
             }
         });
 
