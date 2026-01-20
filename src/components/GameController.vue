@@ -111,7 +111,7 @@ onMounted(() => {
 
   <button
     v-if="isHost"
-    class="fixed bottom-4 right-4 z-40 bg-slate-800/80 hover:bg-slate-700 text-white p-3 rounded-full border border-slate-600 shadow-xl backdrop-blur transition-all hover:scale-110"
+    class="fixed top-4 left-4 z-40 bg-slate-800/80 hover:bg-slate-700 text-white p-3 rounded-full border border-slate-600 shadow-xl backdrop-blur transition-all hover:scale-110"
     title="Host Controls"
     @click="showPlayerManager = true"
   >

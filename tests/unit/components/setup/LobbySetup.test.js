@@ -15,6 +15,7 @@ const mockGameState = reactive({
 const mockIsPending = ref(false);
 const mockConnectionError = ref('');
 const mockRemoteDisconnectReason = ref('');
+const mockMyName = ref('');
 
 const mockActions = {
     initHost: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock('../../../../src/composables/usePeer', () => ({
         isPending: mockIsPending,
         connectionError: mockConnectionError,
         remoteDisconnectReason: mockRemoteDisconnectReason,
+        myName: mockMyName,
         ...mockActions
     })
 }));

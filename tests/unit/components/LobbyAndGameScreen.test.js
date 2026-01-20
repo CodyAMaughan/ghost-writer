@@ -92,7 +92,8 @@ vi.mock('../../../src/composables/usePeer', () => ({
         // So we need to return `isHost`. Let's assume true for most integration tests unless qspecified.
         isHost: true,
         connectionError: ref(''),
-        isPending: ref(false), // Also adding isPending just in case, as Lobby uses it
+        isPending: ref(false),
+        myName: ref('TestUser'), // Added missing mock property
         ...mockActions
     })
 }));
