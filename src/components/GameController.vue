@@ -8,6 +8,10 @@ import LandingPage from './setup/LandingPage.vue';
 import HostSetup from './setup/HostSetup.vue';
 import JoinSetup from './setup/JoinSetup.vue';
 import PendingScreen from './setup/PendingScreen.vue';
+import PlayerManagerModal from './modals/PlayerManagerModal.vue';
+import { Users } from 'lucide-vue-next';
+
+const showPlayerManager = ref(false);
 
 const { gameState, isPending, remoteDisconnectReason, isHost, myId } = usePeer();
 const { playMusic, validateMusic } = useAudio();
@@ -103,5 +107,19 @@ onMounted(() => {
     @navigate="(newMode) => mode = newMode"
     @back="mode = 'LANDING'"
     @leave="mode = 'LANDING'"
+  />
+
+  <button
+    v-if="isHost"
+    class="fixed bottom-4 right-4 z-40 bg-slate-800/80 hover:bg-slate-700 text-white p-3 rounded-full border border-slate-600 shadow-xl backdrop-blur transition-all hover:scale-110"
+    title="Host Controls"
+    @click="showPlayerManager = true"
+  >
+    <Users class="w-6 h-6" />
+  </button>
+
+  <PlayerManagerModal 
+    :is-open="showPlayerManager" 
+    @close="showPlayerManager = false" 
   />
 </template>

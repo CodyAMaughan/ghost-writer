@@ -34,11 +34,19 @@ const gameState = reactive({
         enableWaitingRoom: false
     },
     usedPrompts: [], // Track used prompts to prevent duplicates
-    pendingPlayers: [] // Players awaiting approval (if waiting room enabled)
+    pendingPlayers: [], // Players awaiting approval (if waiting room enabled)
+    blacklist: [] // Store UUIDs of banned players
 });
 
+// Reconnection Timers (Host Side)
+const reconnectTimers = new Map(); // playerUuid -> timeoutId
+
 const myId = ref('');
-const myName = ref('');
+const myName = ref(
+    typeof localStorage !== 'undefined'
+        ? localStorage.getItem('ghost_writer_name') || ''
+        : ''
+);
 const isHost = ref(false);
 const isPending = ref(false); // Track if waiting for host approval
 const connectionError = ref(''); // Error message for connection issues
@@ -117,9 +125,7 @@ export function usePeer() {
             connMap.set(conn.peer, conn);
             conn.on('data', (data) => handleHostData(data, conn.peer));
             conn.on('close', () => {
-                removePlayer(conn.peer);
-                // Also remove from pending if they were there
-                gameState.pendingPlayers = gameState.pendingPlayers.filter(p => p.id !== conn.peer);
+                handleDisconnect(conn.peer);
             });
             // Don't send SYNC yet - wait for JOIN with password if needed
         });
@@ -131,6 +137,9 @@ export function usePeer() {
     const joinGame = async (code, name, password = '') => {
         isHost.value = false;
         myName.value = name;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('ghost_writer_name', name);
+        }
         gameState.roomCode = code;
         connectionError.value = ''; // Clear any previous errors
         isPending.value = false; // Reset pending state
@@ -156,7 +165,8 @@ export function usePeer() {
             hostConn = peer.connect(hostId);
 
             hostConn.on('open', () => {
-                hostConn.send({ type: 'JOIN', payload: { name, password } });
+                const playerUuid = getPersistentId();
+                hostConn.send({ type: 'JOIN', payload: { name, password, playerUuid } });
             });
 
             hostConn.on('data', (data) => handleClientData(data));
@@ -174,10 +184,110 @@ export function usePeer() {
 
     // --- DATA HANDLERS ---
 
+    const handleDisconnect = (peerId) => {
+        const player = gameState.players.find(p => p.id === peerId);
+        if (!player) return;
+
+        console.log(`[HOST] Player disconnected: ${player.name} (${peerId})`);
+
+        // 1. Mark as Disconnected (Zombie Mode)
+        player.connectionStatus = 'disconnected';
+        broadcastState();
+
+        // 2. Start Death Timer (60s)
+        // If they have a persistent UUID, use it to track timer. Otherwise just peerId (less reliable but fallback)
+        const key = player.playerUuid || peerId;
+
+        if (reconnectTimers.has(key)) clearTimeout(reconnectTimers.get(key));
+
+        const timerId = setTimeout(() => {
+            console.log(`[HOST] Player timed out: ${player.name}`);
+            removePlayer(player.id, 'TIMEOUT');
+            reconnectTimers.delete(key);
+        }, 60000); // 60s Grace Period
+
+        reconnectTimers.set(key, timerId);
+    };
+
+    const migratePlayerId = (oldId, newId) => {
+        // 1. Update Submissions
+        gameState.submissions.forEach(sub => {
+            if (sub.authorId === oldId) sub.authorId = newId;
+            // Update votes inside submission
+            if (sub.votes[oldId]) {
+                sub.votes[newId] = sub.votes[oldId];
+                delete sub.votes[oldId];
+            }
+        });
+
+        // 2. Update Pending Votes (if any)
+        // (gameState.votes is legacy? Voting happens inside submissions)
+
+        // 3. Update Finished Lists
+        const finishedIndex = gameState.finishedVotingIDs.indexOf(oldId);
+        if (finishedIndex !== -1) {
+            gameState.finishedVotingIDs[finishedIndex] = newId;
+        }
+
+        // 4. Update Chat History?
+        // Chat is local but we might want to broadcast a 'MIGRATE_USER' event?
+        // checks useChat.js... it uses senderId for display. 
+        // We should tell clients to update their chat history mapping.
+        // Implementation: Send a special system message or just let it be?
+        // 'UPDATE_NAME' event updates historyName. Maybe we need 'UPDATE_ID'?
+        // For now, let's just accept chat might be split.
+    };
+
     const handleHostData = (msg, senderId) => {
         console.log(`[HOST] Received ${msg.type} from ${senderId}`, msg.payload);
         switch (msg.type) {
             case 'JOIN':
+                // 1. Check Blacklist
+                if (gameState.blacklist.includes(msg.payload.playerUuid)) {
+                    const conn = connMap.get(senderId);
+                    if (conn) {
+                        conn.send({ type: 'REJECTED', payload: { message: 'You are banned from this lobby.' } });
+                        setTimeout(() => conn.close(), 100);
+                    }
+                    connMap.delete(senderId);
+                    return;
+                }
+
+                // 2. Check for Reconnection (Resurrection)
+                const existingPlayer = gameState.players.find(p => p.playerUuid && p.playerUuid === msg.payload.playerUuid);
+
+                if (existingPlayer) {
+                    console.log(`[HOST] Resurrecting player ${existingPlayer.name} (${senderId})`);
+
+                    // Cancel Death Timer
+                    const timerId = reconnectTimers.get(existingPlayer.playerUuid);
+                    if (timerId) {
+                        clearTimeout(timerId);
+                        reconnectTimers.delete(existingPlayer.playerUuid);
+                    }
+
+                    // Update Identity
+                    // The old peer ID is dead. We must replace it.
+                    // But wait, other players might know them by old ID? 
+                    // No, `gameState.players` has the ID. We must update it.
+                    const oldId = existingPlayer.id;
+                    existingPlayer.id = senderId;
+                    existingPlayer.connectionStatus = 'connected';
+
+                    // Update submissions/votes authorship?
+                    // Submissions use authorId. We need to migrate them?
+                    // YES. If ID changes, we must migrate all references to the ID.
+                    migratePlayerId(oldId, senderId);
+
+                    // Standard Welcome
+                    const conn = connMap.get(senderId);
+                    if (conn) {
+                        conn.send({ type: 'SYNC', payload: gameState });
+                    }
+                    broadcastState();
+                    return;
+                }
+
                 // Password check
                 if (gameState.settings.requirePassword) {
                     if (msg.payload.password !== gameState.settings.password) {
@@ -211,7 +321,8 @@ export function usePeer() {
                     gameState.pendingPlayers.push({
                         id: senderId,
                         name: msg.payload.name,
-                        avatarId: null
+                        avatarId: null,
+                        playerUuid: msg.payload.playerUuid // Store UUID
                     });
                     // Send pending status (not full SYNC)
                     const conn = connMap.get(senderId);
@@ -220,7 +331,7 @@ export function usePeer() {
                     }
                 } else {
                     // Direct entry
-                    addPlayer(senderId, msg.payload.name, false);
+                    addPlayer(senderId, msg.payload.name, false, msg.payload.playerUuid);
                     // Send welcome SYNC
                     const conn = connMap.get(senderId);
                     if (conn) {
@@ -427,10 +538,18 @@ export function usePeer() {
         });
     };
 
-    const addPlayer = (id, name, isHostPlayer) => {
+    const addPlayer = (id, name, isHostPlayer, playerUuid = null) => {
         if (gameState.players.find(p => p.id === id)) return;
         const avatarId = getUniqueAvatarId();
-        gameState.players.push({ id, name, score: 0, isHost: isHostPlayer, avatarId });
+        gameState.players.push({
+            id,
+            name,
+            score: 0,
+            isHost: isHostPlayer,
+            avatarId,
+            playerUuid,
+            connectionStatus: 'connected'
+        });
         broadcastState();
     };
 
@@ -488,6 +607,16 @@ export function usePeer() {
 
     const kickPlayer = (id) => {
         if (isHost.value) {
+            const player = gameState.players.find(p => p.id === id);
+            if (player && player.playerUuid) {
+                gameState.blacklist.push(player.playerUuid);
+
+                // Clear any reconnect timer if they were a zombie
+                if (reconnectTimers.has(player.playerUuid)) {
+                    clearTimeout(reconnectTimers.get(player.playerUuid));
+                    reconnectTimers.delete(player.playerUuid);
+                }
+            }
             removePlayer(id, 'KICKED');
         }
     };
@@ -751,14 +880,16 @@ export function usePeer() {
     };
 
     const clearTimers = () => {
-        console.log('[TIMER DEBUG] clearTimers called. promptTimeout:', promptTimeout, 'currentTimerInterval:', currentTimerInterval);
         if (revealTimer) clearInterval(revealTimer);
         if (currentTimerInterval) clearInterval(currentTimerInterval);
         if (promptTimeout) clearTimeout(promptTimeout);
+
+        // Clear all zombie reconnection timers
+        reconnectTimers.forEach((timerId) => clearTimeout(timerId));
+        reconnectTimers.clear();
     };
 
     const resetGame = () => {
-        console.log('[TIMER DEBUG] resetGame called');
         resetChat(); // Reset chat state
         clearTimers();
         // Reset all state to default
@@ -769,6 +900,7 @@ export function usePeer() {
         gameState.timer = 0;
         gameState.players = [];
         gameState.pendingPlayers = [];
+        gameState.blacklist = []; // Clear blacklist so kicked players can rejoin in new games (or tests)
         gameState.submissions = [];
         gameState.votes = {};
         gameState.revealedIndex = -1;
@@ -790,33 +922,85 @@ export function usePeer() {
         // We keep myName.value for convenience
     };
 
+    const getPersistentId = () => {
+        const STORAGE_KEY = 'ghost_writer_auth';
+        const TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                const data = JSON.parse(stored);
+                const age = Date.now() - data.timestamp;
+                if (age < TTL) {
+                    return data.uuid;
+                }
+            }
+        } catch (e) {
+            console.warn("Auth storage read error", e);
+        }
+
+        // Generate new
+        const newUuid = crypto.randomUUID();
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                uuid: newUuid,
+                timestamp: Date.now()
+            }));
+        } catch (e) {
+            console.warn("Auth storage write error", e);
+        }
+        return newUuid;
+    };
+
+    const forceAdvance = () => {
+        if (!isHost.value) return;
+
+        console.log('[HOST] Force Advance triggered from phase:', gameState.phase);
+
+        if (gameState.phase === 'INPUT') {
+            // Force end timer and start voting
+            if (currentTimerInterval) clearInterval(currentTimerInterval);
+            startVoting();
+        } else if (gameState.phase === 'VOTING') {
+            // Force lock votes (even if some missing)
+            lockVotes();
+        } else if (gameState.phase === 'REVEAL') {
+            // Force next round
+            if (gameState.round >= gameState.settings.totalRounds) {
+                returnToLobby();
+            } else {
+                gameState.round++;
+                startRound();
+            }
+        }
+    };
+
     const leaveGame = () => {
         console.log('[TIMER DEBUG] leaveGame called. isHost:', isHost.value);
-        if (isHost.value) {
-            // Notify all players that the lobby is closing
-            Object.values(connMap).forEach(conn => { // connMap stores connections? No, map values are conns
+        return new Promise((resolve) => {
+            if (isHost.value) {
+                // Notify all players that the lobby is closing
+                // Better: loop through map
+                connMap.forEach((conn) => {
+                    if (conn && conn.open) {
+                        conn.send({ type: 'LOBBY_CLOSED' });
+                    }
+                });
 
-            });
-            // Better: loop through map
-            connMap.forEach((conn) => {
-                if (conn && conn.open) {
-                    conn.send({ type: 'LOBBY_CLOSED' });
-                }
-            });
+                // CRITICAL: Stop all game logic/timers IMMEDIATELY so no new states 
+                // (like INPUT) are broadcast while we are waiting to close.
+                clearTimers();
 
-            // CRITICAL: Stop all game logic/timers IMMEDIATELY so no new states 
-            // (like INPUT) are broadcast while we are waiting to close.
-            clearTimers();
-
-            // Give a tiny delay for messages to flush before destroying peer?
-            setTimeout(() => {
-                console.log('[DEBUG] leaveGame: Calling resetGame after timeout');
+                // Give a tiny delay for messages to flush before destroying peer?
+                setTimeout(() => {
+                    resetGame();
+                    resolve();
+                }, 100);
+            } else {
                 resetGame();
-            }, 100);
-        } else {
-            console.log('[DEBUG] leaveGame: Client calling resetGame immediately');
-            resetGame();
-        }
+                resolve();
+            }
+        });
     };
 
     return {
@@ -853,6 +1037,10 @@ export function usePeer() {
         },
         updatePlayerName: (newName) => {
             if (!newName.trim()) return;
+
+            // Persist name
+            localStorage.setItem('ghost_writer_name', newName.trim());
+            myName.value = newName.trim();
 
             if (isHost.value) {
                 handleHostData({ type: 'UPDATE_NAME', payload: { name: newName } }, myId.value);
@@ -939,6 +1127,7 @@ export function usePeer() {
         getGhostOptions,
         sendChatMessage,
         sendEmote,
+        forceAdvance,
         gameMessages, // Reactive
         lastReaction // Reactive
     };

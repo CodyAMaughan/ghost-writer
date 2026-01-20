@@ -16,8 +16,9 @@ vi.mock('../../src/services/ai', () => ({ fetchAI: vi.fn() }));
 vi.mock('../../src/config/themes', () => ({ THEMES: {} }));
 
 describe('usePeer Logic', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         MockPeer.reset();
+        if (usePeer().isHost.value) await usePeer().leaveGame();
         vi.useFakeTimers();
     });
 
@@ -30,7 +31,7 @@ describe('usePeer Logic', () => {
         await client.joinGame('CODE', 'MyName');
 
         // Wait for Peer 'open' (mock delay)
-        vi.advanceTimersByTime(50);
+        await vi.advanceTimersByTimeAsync(50);
         await nextTick();
 
         const clientPeer = MockPeer.instances[0];
@@ -55,7 +56,7 @@ describe('usePeer Logic', () => {
         await host.initHost('HostName', 'provider', 'key');
 
         // Wait for Peer 'open'
-        vi.advanceTimersByTime(50);
+        await vi.advanceTimersByTimeAsync(50);
         await nextTick();
 
         expect(host.isHost.value).toBe(true);
@@ -94,7 +95,7 @@ describe('usePeer Logic', () => {
 
         expect(mockPlayerConn.close).not.toHaveBeenCalled();
 
-        vi.advanceTimersByTime(500);
+        await vi.advanceTimersByTimeAsync(500);
 
         expect(mockPlayerConn.close).toHaveBeenCalled();
         expect(host.gameState.players.find(p => p.id === 'player-1')).toBeUndefined();

@@ -4,6 +4,7 @@ import { usePeer } from '../composables/usePeer';
 import { AVATARS } from '../config/avatars';
 import { getAvatarStyle } from '../utils/avatarStyles';
 import AvatarIcon from './icons/AvatarIcon.vue';
+import { WifiOff } from 'lucide-vue-next';
 import AvatarPickerModal from './modals/AvatarPickerModal.vue';
 
 const props = defineProps({
@@ -99,6 +100,7 @@ const handleClick = () => {
     <!-- Avatar -->
     <div
       :class="isClickable ? 'cursor-pointer' : ''"
+      class="relative"
       @click="handleAvatarClick"
     >
       <AvatarIcon
@@ -106,8 +108,16 @@ const handleClick = () => {
         :avatar-id="player.avatarId"
         :size="sizeClasses.icon"
         :show-border="true"
+        :class="{ 'opacity-50 grayscale': player.connectionStatus === 'disconnected' }"
         data-testid="nameplate-avatar"
       />
+      <div 
+        v-if="player.connectionStatus === 'disconnected'"
+        class="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-0.5 border-2 border-slate-900"
+        title="Disconnected"
+      >
+        <WifiOff class="w-3 h-3 text-white" />
+      </div>
     </div>
 
     <!-- Text Container -->

@@ -12,10 +12,10 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['back']);
-const { joinGame, isPending, connectionError } = usePeer();
+const { joinGame, isPending, connectionError, myName } = usePeer();
 
 const form = ref({
-  name: '',
+  name: myName.value,
   code: props.initialCode || new URLSearchParams(window.location.search).get('room') || '',
   password: ''
 });
