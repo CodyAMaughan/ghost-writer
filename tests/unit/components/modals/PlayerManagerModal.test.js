@@ -183,4 +183,22 @@ describe('PlayerManagerModal (Integration)', () => {
         // Verify Phase Change (Force Advance on INPUT -> VOTING)
         expect(gameState.phase).toBe('VOTING');
     });
+
+    it('successfully force advances from VOTING to REVEAL (Regression Test for lockVotes)', async () => {
+        await setupHostWithPlayer();
+        const { gameState } = usePeer();
+        gameState.phase = 'VOTING';
+        // Add a mock submission so REVEAL phase has something to show, preventing immediate jump to FINISH
+        gameState.submissions = [{ authorId: 'p1', text: 'test', votes: {} }];
+
+        const wrapper = mount(PlayerManagerModal, {
+            props: { isOpen: true }
+        });
+
+        const forceBtn = wrapper.find('button.text-xs.uppercase');
+        await forceBtn.trigger('click');
+
+        // Since we explicitly call startReveal() in forceAdvance for VOTING phase:
+        expect(gameState.phase).toBe('REVEAL');
+    });
 });

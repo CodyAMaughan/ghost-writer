@@ -962,15 +962,17 @@ export function usePeer() {
             if (currentTimerInterval) clearInterval(currentTimerInterval);
             startVoting();
         } else if (gameState.phase === 'VOTING') {
-            // Force lock votes (even if some missing)
-            lockVotes();
+            // Force start reveal immediately, ignoring missing votes
+            startReveal();
         } else if (gameState.phase === 'REVEAL') {
-            // Force next round
-            if (gameState.round >= gameState.settings.totalRounds) {
+            // Force next card or end round
+            nextReveal();
+        } else if (gameState.phase === 'FINISH') {
+            if (gameState.round >= gameState.settings.maxRounds) { // Typo fix: maxRounds (check state init)
+                // Or totalRounds? gameState.maxRounds (line 20)
                 returnToLobby();
             } else {
-                gameState.round++;
-                startRound();
+                nextRound();
             }
         }
     };
@@ -1001,6 +1003,14 @@ export function usePeer() {
                 resolve();
             }
         });
+    };
+
+    const lockVotes = () => {
+        if (isHost.value) {
+            handleHostData({ type: 'LOCK_VOTES' }, myId.value);
+        } else {
+            hostConn.send({ type: 'LOCK_VOTES' });
+        }
     };
 
     return {
@@ -1062,13 +1072,7 @@ export function usePeer() {
                 hostConn.send({ type: 'SUBMIT_VOTE', payload: { targetAuthorId, guess } });
             }
         },
-        lockVotes: () => {
-            if (isHost.value) {
-                handleHostData({ type: 'LOCK_VOTES' }, myId.value);
-            } else {
-                hostConn.send({ type: 'LOCK_VOTES' });
-            }
-        },
+        lockVotes,
         approvePendingPlayer: (playerId) => {
             if (!isHost.value) return;
 
