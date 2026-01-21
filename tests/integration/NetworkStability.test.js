@@ -94,14 +94,28 @@ describe('Network Stability & Heartbeats', () => {
         conn.emit('data', { type: 'JOIN', payload: { name: 'RemoveMe', playerUuid: 'uuid-remove' } });
         await vi.advanceTimersByTimeAsync(100);
 
-        // Disconnect first (simulate zombie)
-        const player = gameState.players.find(p => p.id === 'peer-remove');
-        player.connectionStatus = 'disconnected';
+        // Spy on send and close
+        // Note: We need to spy on the connection object stored in connMap inside usePeer.
+        // Since we don't have direct access to internal connMap, we can assume MockPeer returns the same connection instance 
+        // OR we can rely on the fact that MockPeer.simulateIncomingConnection returns the SERVER side connection 
+        // which usePeer receives in 'connection' event.
+        const sendSpy = vi.spyOn(conn, 'send');
+        const closeSpy = vi.spyOn(conn, 'close');
 
-        // Call Remove
-        removePlayer('peer-remove'); // No reason provided implies generic removal
+        // Call Remove with MANUAL reason
+        removePlayer('peer-remove', 'MANUAL');
 
-        // Verify gone
+        // Verify message sent
+        expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'REMOVED',
+            payload: expect.objectContaining({ message: 'You have been removed from the game.' })
+        }));
+
+        // Verify connection closed after delay
+        await vi.advanceTimersByTimeAsync(200);
+        expect(closeSpy).toHaveBeenCalled();
+
+        // Verify gone from state
         expect(gameState.players.find(p => p.id === 'peer-remove')).toBeUndefined();
 
         // Verify NOT blacklisted

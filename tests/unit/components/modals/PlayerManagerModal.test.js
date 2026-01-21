@@ -127,6 +127,41 @@ describe('PlayerManagerModal (Integration)', () => {
         expect(wrapper.text()).not.toContain('RemotePlayer');
     });
 
+    it('allows removing a player (without ban) via game state updates', async () => {
+        // A. Setup State
+        const { remoteConn } = await setupHostWithPlayer();
+        const { gameState, isHost } = usePeer();
+
+        // B. Mount Component
+        const wrapper = mount(PlayerManagerModal, {
+            props: { isOpen: true }
+        });
+
+        // 1. Find Remove Button
+        const removeButtons = wrapper.findAll('button[title="Remove Player (Allow Rejoin)"]');
+        expect(removeButtons.length).toBe(1);
+
+        // Spy on connection send
+        const sendSpy = vi.spyOn(remoteConn, 'send');
+
+        // 2. Click Remove
+        await removeButtons[0].trigger('click');
+
+        // 3. Verify Confirm
+        expect(global.confirm).toHaveBeenCalled();
+
+        // 4. Verify Network Message (REMOVED)
+        // Manual removal sends 'REMOVED' and closes connection
+        expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'REMOVED',
+            payload: expect.objectContaining({ message: 'You have been removed from the game.' })
+        }));
+
+        // 5. Verify State (Gone from players, NOT in blacklist)
+        expect(gameState.players.find(p => p.id === 'peer-remote-123')).toBeUndefined();
+        expect(gameState.blacklist).not.toContain('remote-uuid-1');
+    });
+
     it('displays disconnected (zombie) players correctly', async () => {
         // A. Setup
         const { remoteConn } = await setupHostWithPlayer();

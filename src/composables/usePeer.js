@@ -482,6 +482,10 @@ export function usePeer() {
         } else if (msg.type === 'PENDING') {
             console.log('Waiting for host approval...');
             isPending.value = true; // Set pending state
+        } else if (msg.type === 'REMOVED') {
+            wasKicked = true;
+            alert(msg.payload.message || 'You have been removed from the game.');
+            window.location.reload();
         } else if (msg.type === 'REJECTED') {
             wasKicked = true; // Mark as intentional disconnect
 
@@ -579,6 +583,20 @@ export function usePeer() {
             if (conn) {
                 conn.send({ type: 'REJECTED', payload: { message: 'You have been kicked by the host.' } });
                 setTimeout(() => conn.close(), 100); // Give time to flush
+            }
+        } else if (reason === 'MANUAL') {
+            // Manual removal (not banned)
+            const conn = connMap.get(id);
+            if (conn) {
+                conn.send({ type: 'REMOVED', payload: { message: 'You have been removed from the game.' } });
+                setTimeout(() => conn.close(), 100);
+            }
+        } else {
+            // Generic removal/disconnect cleanup
+            // If connection exists, close it to be sure
+            const conn = connMap.get(id);
+            if (conn && conn.open) {
+                conn.close();
             }
         }
 

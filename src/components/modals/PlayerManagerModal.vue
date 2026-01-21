@@ -28,6 +28,12 @@ const handleKick = (playerId, playerName) => {
     }
 };
 
+const handleRemove = (playerId, playerName) => {
+    if (confirm(`Are you sure you want to remove ${playerName}? They will be allowed to rejoin.`)) {
+        removePlayer(playerId, 'MANUAL');
+    }
+};
+
 const handleForceAdvance = () => {
     if (confirm("Force advance the game phase? Use this only if the game is stuck.")) {
         forceAdvance();
@@ -91,23 +97,23 @@ const getStatusColor = (player) => {
                 </div>
             </div>
 
-            <button 
-                v-if="!player.isHost"
-                @click="handleRemove(player.id, player.name)"
-                class="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded transition-colors mr-1"
-                title="Remove Player (Allow Rejoin)"
-            >
-                <Trash class="w-4 h-4" />
-            </button>
+            <div v-if="!player.isHost" class="flex items-center gap-1">
+                <button 
+                    @click="handleRemove(player.id, player.name)"
+                    class="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded transition-colors"
+                    title="Remove Player (Allow Rejoin)"
+                >
+                    <Trash class="w-4 h-4" />
+                </button>
 
-            <button 
-                v-if="!player.isHost"
-                @click="handleKick(player.id, player.name)"
-                class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                title="Kick & Ban Player"
-            >
-                <UserX class="w-4 h-4" />
-            </button>
+                <button 
+                    @click="handleKick(player.id, player.name)"
+                    class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                    title="Kick & Ban Player"
+                >
+                    <UserX class="w-4 h-4" />
+                </button>
+            </div>
         </div>
       </div>
             
