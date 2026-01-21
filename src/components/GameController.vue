@@ -9,6 +9,7 @@ import HostSetup from './setup/HostSetup.vue';
 import JoinSetup from './setup/JoinSetup.vue';
 import PendingScreen from './setup/PendingScreen.vue';
 import PlayerManagerModal from './modals/PlayerManagerModal.vue';
+import GlobalNotification from './common/GlobalNotification.vue';
 import { Users } from 'lucide-vue-next';
 
 const showPlayerManager = ref(false);
@@ -108,6 +109,8 @@ onMounted(() => {
     @back="mode = 'LANDING'"
     @leave="mode = 'LANDING'"
   />
+
+  <GlobalNotification />
 
   <button
     v-if="isHost"

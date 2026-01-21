@@ -88,9 +88,10 @@ describe('Reconnection & Zombie Protocol', () => {
         await vi.advanceTimersByTimeAsync(61000);
 
         // Verify Removal
-        // Only Host should remain
-        expect(gameState.players).toHaveLength(1);
-        expect(gameState.players[0].isHost).toBe(true);
+        // UPDATED LOGIC: We no longer auto-remove. We expect them to persist as Disconnected.
+        expect(gameState.players).toHaveLength(2);
+        const zombie = gameState.players.find(p => p.name === 'Player B');
+        expect(zombie.connectionStatus).toBe('disconnected');
     });
 
     it('Scenario: The Resurrection (Reconnection)', async () => {

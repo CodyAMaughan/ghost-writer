@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { usePeer } from '../../composables/usePeer';
-import { X, UserX, SkipForward, WifiOff, Users, AlertTriangle } from 'lucide-vue-next';
+import { X, UserX, SkipForward, WifiOff, Users, AlertTriangle, Trash } from 'lucide-vue-next';
 import AvatarIcon from '../icons/AvatarIcon.vue';
 import { THEMES } from '../../config/themes';
 
@@ -14,7 +14,7 @@ defineProps({
 
 defineEmits(['close']);
 
-const { gameState, kickPlayer, forceAdvance } = usePeer();
+const { gameState, kickPlayer, removePlayer, forceAdvance } = usePeer();
 
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
@@ -90,6 +90,15 @@ const getStatusColor = (player) => {
                     </div>
                 </div>
             </div>
+
+            <button 
+                v-if="!player.isHost"
+                @click="handleRemove(player.id, player.name)"
+                class="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded transition-colors mr-1"
+                title="Remove Player (Allow Rejoin)"
+            >
+                <Trash class="w-4 h-4" />
+            </button>
 
             <button 
                 v-if="!player.isHost"

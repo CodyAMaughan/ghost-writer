@@ -2,13 +2,13 @@
 import { computed, ref } from 'vue';
 import { usePeer } from '../composables/usePeer';
 import { useAudio } from '../composables/useAudio';
-import { Check, Link, Share, Trash2, EyeOff } from 'lucide-vue-next';
+import { Check, Link, Share, Trash, UserX, EyeOff } from 'lucide-vue-next';
 import Nameplate from './Nameplate.vue';
 import { THEMES } from '../config/themes';
 import { useStreamerMode } from '../composables/useStreamerMode';
 import ProfileModal from './modals/ProfileModal.vue';
 
-const { gameState, myId, startGame, isHost, kickPlayer, setTheme, leaveGame } = usePeer();
+const { gameState, myId, startGame, isHost, kickPlayer, removePlayer, setTheme, leaveGame } = usePeer();
 const { isStreamerMode } = useStreamerMode();
 const theme = computed(() => THEMES[gameState.currentTheme] || THEMES.viral);
 
@@ -67,6 +67,12 @@ const showProfileModal = ref(false);
 const handleNameClick = (playerId) => {
     if (playerId === myId.value) {
         showProfileModal.value = true;
+    }
+};
+
+const handleRemove = (playerId, playerName) => {
+    if (confirm(`Remove ${playerName} from the game? They can rejoin with the same name/ID if they reconnect.`)) {
+        removePlayer(playerId, 'MANUAL');
     }
 };
 </script>
@@ -189,7 +195,7 @@ const handleNameClick = (playerId) => {
                 title="Reject"
                 @click="usePeer().rejectPendingPlayer(pending.id)"
               >
-                <Trash2 class="w-4 h-4" />
+                <Trash class="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -216,15 +222,27 @@ const handleNameClick = (playerId) => {
             HOST
           </div>
              
-          <!-- Kick Button -->
-          <button 
-            v-if="isHost && player.id !== myId && !player.isHost" 
-            class="absolute top-1 right-1 p-1 bg-red-900/50 hover:bg-red-900 rounded border border-red-700 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-            title="Kick player"
-            @click="kickPlayer(player.id)"
+          <!-- Host Actions -->
+          <div 
+             v-if="isHost && player.id !== myId && !player.isHost" 
+             class="absolute top-1 right-1 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <Trash2 class="w-3 h-3 text-red-300" />
-          </button>
+             <button 
+                class="p-1 bg-amber-900/50 hover:bg-amber-900 rounded border border-amber-700"
+                title="Remove Player (Allow Rejoin)"
+                @click.stop="handleRemove(player.id, player.name)"
+             >
+               <Trash class="w-3 h-3 text-amber-300" />
+             </button>
+
+             <button 
+                class="p-1 bg-red-900/50 hover:bg-red-900 rounded border border-red-700"
+                title="Kick & Ban Player"
+                @click.stop="kickPlayer(player.id)"
+             >
+               <UserX class="w-3 h-3 text-red-300" />
+             </button>
+          </div>
              
           <!-- Nameplate Component -->
           <Nameplate

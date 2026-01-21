@@ -40,6 +40,9 @@ const gameState = reactive({
 
 // Reconnection Timers (Host Side)
 const reconnectTimers = new Map(); // playerUuid -> timeoutId
+const lastHeartbeat = new Map(); // peerId -> timestamp
+let heartbeatInterval = null; // Host monitor loop
+let clientHeartbeatInterval = null; // Client sender loop
 
 const myId = ref('');
 const myName = ref(
@@ -55,6 +58,8 @@ const connMap = new Map();
 let peer = null;
 let hostConn = null;
 let wasKicked = false; // Track if we were intentionally disconnected
+
+const notifications = reactive([]);
 
 
 // Chat & Emote State - MOVED to useChat.js
@@ -119,6 +124,7 @@ export function usePeer() {
             myId.value = id;
             gameState.hostId = id;
             addPlayer(id, name, true);
+            startHeartbeatMonitor();
         });
 
         peer.on('connection', (conn) => {
@@ -167,6 +173,7 @@ export function usePeer() {
             hostConn.on('open', () => {
                 const playerUuid = getPersistentId();
                 hostConn.send({ type: 'JOIN', payload: { name, password, playerUuid } });
+                startClientHeartbeat();
             });
 
             hostConn.on('data', (data) => handleClientData(data));
@@ -191,22 +198,13 @@ export function usePeer() {
         console.log(`[HOST] Player disconnected: ${player.name} (${peerId})`);
 
         // 1. Mark as Disconnected (Zombie Mode)
-        player.connectionStatus = 'disconnected';
-        broadcastState();
+        if (player.connectionStatus !== 'disconnected') {
+            player.connectionStatus = 'disconnected';
+            addNotification(`${player.name} disconnected`, 'error');
+            broadcastState();
+        }
 
-        // 2. Start Death Timer (60s)
-        // If they have a persistent UUID, use it to track timer. Otherwise just peerId (less reliable but fallback)
-        const key = player.playerUuid || peerId;
-
-        if (reconnectTimers.has(key)) clearTimeout(reconnectTimers.get(key));
-
-        const timerId = setTimeout(() => {
-            console.log(`[HOST] Player timed out: ${player.name}`);
-            removePlayer(player.id, 'TIMEOUT');
-            reconnectTimers.delete(key);
-        }, 60000); // 60s Grace Period
-
-        reconnectTimers.set(key, timerId);
+        // REMOVED: Auto-kick timer. We now rely on Heartbeat logic or manual removal.
     };
 
     const migratePlayerId = (oldId, newId) => {
@@ -273,6 +271,7 @@ export function usePeer() {
                     const oldId = existingPlayer.id;
                     existingPlayer.id = senderId;
                     existingPlayer.connectionStatus = 'connected';
+                    addNotification(`${existingPlayer.name} reconnected`, 'success');
 
                     // Update submissions/votes authorship?
                     // Submissions use authorId. We need to migrate them?
@@ -339,6 +338,9 @@ export function usePeer() {
                     }
                 }
                 broadcastState();
+                break;
+            case 'HEARTBEAT':
+                lastHeartbeat.set(senderId, Date.now());
                 break;
             case 'SUBMIT_ANSWER':
                 const existing = gameState.submissions.find(s => s.authorId === senderId);
@@ -550,6 +552,7 @@ export function usePeer() {
             playerUuid,
             connectionStatus: 'connected'
         });
+        lastHeartbeat.set(id, Date.now());
         broadcastState();
     };
 
@@ -580,9 +583,13 @@ export function usePeer() {
         }
 
         connMap.delete(id);
+        lastHeartbeat.delete(id);
 
         // Also remove from pending if applicable
         gameState.pendingPlayers = gameState.pendingPlayers.filter(p => p.id !== id);
+
+        // Notify
+        addNotification(`${p ? p.name : 'Player'} removed`, 'info');
 
         // If in active game, we might need to perform checks
         if (gameState.phase !== 'LOBBY' && gameState.phase !== 'FINISH') {
@@ -887,6 +894,11 @@ export function usePeer() {
         // Clear all zombie reconnection timers
         reconnectTimers.forEach((timerId) => clearTimeout(timerId));
         reconnectTimers.clear();
+
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        if (clientHeartbeatInterval) clearInterval(clientHeartbeatInterval);
+        heartbeatInterval = null;
+        clientHeartbeatInterval = null;
     };
 
     const resetGame = () => {
@@ -977,6 +989,68 @@ export function usePeer() {
         }
     };
 
+    const startHeartbeatMonitor = () => {
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+        heartbeatInterval = setInterval(() => {
+            const now = Date.now();
+            gameState.players.forEach(p => {
+                if (p.isHost) return; // Don't check host (self)
+
+                const last = lastHeartbeat.get(p.id) || now; // Default to now for new joins? Risk of immediate disconnect.
+                // Better: When player joins, set their lastHeartbeat to now.
+                // We'll trust logic in JOIN to set it? Or handleHostData -> JOIN? 
+                // Actually, let's just use connection time or last ping.
+                // If never pinged, use join time? 
+                // Issue: lastHeartbeat map acts as source of truth.
+
+                // Fix: Initialize lastHeartbeat on JOIN.
+                // But for now, if missing, assume alive? No, assume dead if connections established long ago.
+                // Simple: defaults to 'now' if not present to give grace period?
+                // Or check connMap?
+
+                if (now - last > 6000) { // 6s timeout
+                    if (p.connectionStatus === 'connected') {
+                        console.log(`[HEARTBEAT] Player ${p.name} timed out.`);
+                        handleDisconnect(p.id);
+                    }
+                } else {
+                    // If they were disconnected but now we see recent heartbeat?
+                    // handleDisconnect triggers on socket close too. 
+                    // If socket is open but heartbeat active, we are good.
+                    // If socket closed, handleDisconnect runs.
+                    // If socket open but NO heartbeat, we mark disconnected.
+                    // If they come back? 'HEARTBEAT' handler should ressurect? 
+                    // Design says: "Heartbeat Recovery: p2 sends HEARTBEAT. Expect status 'connected'."
+                    if (p.connectionStatus === 'disconnected') {
+                        console.log(`[HEARTBEAT] Player ${p.name} recovered.`);
+                        p.connectionStatus = 'connected';
+                        addNotification(`${p.name} reconnected`, 'success');
+                        broadcastState();
+                    }
+                }
+            });
+        }, 1000);
+    };
+
+    const startClientHeartbeat = () => {
+        if (clientHeartbeatInterval) clearInterval(clientHeartbeatInterval);
+        clientHeartbeatInterval = setInterval(() => {
+            if (hostConn && hostConn.open) {
+                hostConn.send({ type: 'HEARTBEAT' });
+            }
+        }, 2000);
+    };
+
+    const addNotification = (message, type = 'info') => {
+        const id = Date.now().toString() + Math.random().toString().slice(2, 5);
+        notifications.push({ id, message, type });
+        setTimeout(() => {
+            const idx = notifications.findIndex(n => n.id === id);
+            if (idx !== -1) notifications.splice(idx, 1);
+        }, 3000);
+    };
+
     const leaveGame = () => {
         console.log('[TIMER DEBUG] leaveGame called. isHost:', isHost.value);
         return new Promise((resolve) => {
@@ -1030,6 +1104,9 @@ export function usePeer() {
         nextReveal,
         nextRevealStep,
         leaveGame, // Exposed
+        removePlayer, // Exposed
+        notifications, // Exposed
+        addNotification, // Exposed
 
         // Actions
         setTheme: (themeId) => {
